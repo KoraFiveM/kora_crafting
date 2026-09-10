@@ -53,6 +53,20 @@ local function normaliseSkills(raw)
     return result
 end
 
+local function normaliseSkillRewards(raw)
+    if raw == nil then return {} end
+    if type(raw) ~= 'table' then return nil, 'skillRewards must be a table' end
+    local result = {}
+    for skill, rawAmount in pairs(raw) do
+        local amount = math.floor(tonumber(rawAmount) or 0)
+        if type(skill) ~= 'string' or skill == '' or amount < 1 or amount > 100000 then
+            return nil, 'invalid skill reward'
+        end
+        result[skill] = amount
+    end
+    return result
+end
+
 local function publicCraftable(craftable, context)
     return {
         id = craftable.id,
@@ -60,6 +74,7 @@ local function publicCraftable(craftable, context)
         take = copy(craftable.take),
         give = copy(craftable.give),
         skills = copy(craftable.skills),
+        skillRewards = copy(craftable.skillRewards),
         context = context,
     }
 end
@@ -117,6 +132,7 @@ end
 ---@field take QBCraftingItem[]
 ---@field give QBCraftingItem[]
 ---@field skills? table<string, integer>|table[]
+---@field skillRewards? table<string, integer>
 ---@field hooks? { pre?: fun(source: integer, data: table): boolean?, post?: fun(source: integer, data: table) }
 
 ---@param definition QBCraftable
@@ -135,6 +151,8 @@ local function registerCraftable(definition, ownerOverride)
     if not give then return false, giveErr end
     local skills, skillErr = normaliseSkills(definition.skills)
     if not skills then return false, skillErr end
+    local skillRewards, rewardErr = normaliseSkillRewards(definition.skillRewards)
+    if not skillRewards then return false, rewardErr end
     local hooks = definition.hooks or {}
     if type(hooks) ~= 'table' then return false, 'hooks must be a table' end
     if hooks.pre ~= nil and type(hooks.pre) ~= 'function' then return false, 'pre hook must be a function' end
@@ -146,6 +164,7 @@ local function registerCraftable(definition, ownerOverride)
         take = take,
         give = give,
         skills = skills,
+        skillRewards = skillRewards,
         pre = hooks.pre,
         post = hooks.post,
     }
@@ -239,6 +258,14 @@ local function craftItem(source, id, context)
     local crafted, result = exports.qbinventory:CraftItem(source, id, context)
     if not crafted then return false, result end
     local data = publicCraftable(craftable, context)
+    if next(craftable.skillRewards) and GetResourceState('qbskills') == 'started' then
+        for skill, amount in pairs(craftable.skillRewards) do
+            local awarded, awardErr = exports.qbskills:addRep(source, skill, amount)
+            if not awarded then
+                print(('^3[qbcrafting]^7 failed to award %s XP for %s: %s'):format(skill, id, tostring(awardErr)))
+            end
+        end
+    end
     if craftable.post then
         local ok, err = pcall(craftable.post, source, data)
         if not ok then

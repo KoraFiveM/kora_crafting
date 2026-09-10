@@ -5,7 +5,7 @@ local invoking = 'recipe-owner'
 local recipes, inventory = {}, {
     { name = 'wood', amount = 3, info = {} },
 }
-local skillLevel, committed = 10, 0
+local skillLevel, committed, awardedXp = 10, 0, 0
 
 local inventoryExports = {}
 function inventoryExports.RegisterCraftRecipe(_, id, recipe) recipes[id] = recipe return true end
@@ -33,6 +33,13 @@ function coreExports.getShared(_, _, name) return { name = name, label = name ==
 
 local skillExports = {}
 function skillExports.isLevel(_, _, _, level) return skillLevel >= level end
+function skillExports.addRep(_, _, _, amount) awardedXp = awardedXp + amount return true end
+
+local playerData = {
+    job = { name = 'mechanic', grade = { level = 2 }, onduty = true },
+    gang = { name = 'none', grade = { level = 1 } },
+}
+function coreExports.getPlayer() return playerData end
 
 exports = setmetatable({ qbinventory = inventoryExports, qbcore = coreExports, qbskills = skillExports }, {
     __call = function(_, name, callback) registeredExports[name] = callback end,
@@ -44,8 +51,18 @@ GetInvokingResource = function() return invoking end
 GetResourceState = function(name) return name == 'qbskills' and 'started' or 'missing' end
 AddEventHandler = function(name, callback) eventHandlers[name] = callback end
 TriggerEvent = function() end
+TriggerClientEvent = function() end
+GetPlayerPed = function() return 77 end
+local playerCoords = { x = 10, y = 20, z = 30 }
+GetEntityCoords = function() return playerCoords end
 
 dofile('server/main.lua')
+
+exports.qbcrafting = setmetatable({}, {
+    __index = function(_, name)
+        return function(_, ...) return registeredExports[name](...) end
+    end,
+})
 
 local preResult, postResult, postSawCommit
 local ok, err = registeredExports.RegisterCraftable({
@@ -53,6 +70,7 @@ local ok, err = registeredExports.RegisterCraftable({
     take = { { item = 'wood', amount = 2 } },
     give = { { item = 'board', amount = 1 }, { item = 'sawdust', amount = 1 } },
     skills = { crafting = 5 },
+    skillRewards = { crafting = 15 },
     hooks = {
         pre = function() return preResult end,
         post = function() postResult = true postSawCommit = committed end,
@@ -72,6 +90,7 @@ H.equal(registeredExports.CraftItem(7, 'board'), true, 'nil pre-hook result perm
 H.equal(inventory[1].amount, 1, 'successful craft consumes ingredients')
 H.equal(postResult, true, 'post hook runs after success')
 H.equal(postSawCommit, 1, 'post hook observes the committed transaction')
+H.equal(awardedXp, 15, 'successful craft awards its declarative skill XP')
 
 local requirements, skills = registeredExports.GetCraftingRequirements(7, 'board')
 H.equal(requirements[1].required, 2, 'requirements expose required amount')
@@ -86,5 +105,67 @@ invoking = 'other-owner'
 H.equal(registeredExports.RegisterCraftable({
     id = 'board', take = { { item = 'wood', amount = 1 } }, give = { { item = 'board', amount = 1 } },
 }), false, 'another resource cannot replace an owned recipe')
+
+dofile('server/areas.lua')
+
+invoking = 'area-owner'
+skillLevel = 10
+H.equal(registeredExports.RegisterCraftingArea({
+    id = 'mechanic_bench',
+    recipes = { 'board' },
+    model = 'prop_tool_bench02',
+    coords = { x = 10, y = 20, z = 30, w = 90 },
+    rules = { jobs = { mechanic = 2 }, onDuty = true, skills = { crafting = 5 } },
+}), true, 'model-backed crafting area registers')
+H.equal(registeredExports.CanUseCraftingArea(7, 'mechanic_bench'), true,
+    'area allows a nearby on-duty player with the required job grade and skill')
+
+playerData.job.onduty = false
+H.equal(registeredExports.CanUseCraftingArea(7, 'mechanic_bench'), false, 'area duty rule is enforced')
+playerData.job.onduty = true
+playerCoords = { x = 100, y = 200, z = 300 }
+H.equal(registeredExports.CanUseCraftingArea(7, 'mechanic_bench'), false, 'area proximity is server-authoritative')
+playerCoords = { x = 10, y = 20, z = 30 }
+
+H.equal(registeredExports.RegisterCraftingArea({
+    id = 'poly_bench',
+    recipes = { 'board' },
+    zone = {
+        type = 'poly',
+        points = { { x = 8, y = 18, z = 29 }, { x = 12, y = 18, z = 29 }, { x = 12, y = 22, z = 29 } },
+        thickness = 3,
+    },
+}), true, 'existing-world poly crafting area registers')
+H.equal(registeredExports.CanUseCraftingArea(7, 'poly_bench'), true, 'poly footprint and height contain the player')
+H.equal(registeredExports.RegisterCraftingArea({
+    id = 'bad_poly',
+    recipes = { 'board' },
+    zone = {
+        type = 'poly',
+        points = { { x = 8, y = 18, z = 29 }, { x = 12, y = 18, z = 29 }, { x = 12, y = 22, z = 29 } },
+        thickness = 'wide',
+    },
+}), false, 'invalid poly thickness is rejected without crashing')
+
+playerData.gang = { name = 'ballas', grade = { level = 2 } }
+H.equal(registeredExports.RegisterCraftingArea({
+    id = 'gang_bench',
+    recipes = { 'board' },
+    zone = { type = 'sphere', coords = { x = 10, y = 20, z = 30 }, radius = 2 },
+    rules = { gangs = { ballas = 2 } },
+}), true, 'gang-restricted sphere crafting area registers')
+H.equal(registeredExports.CanUseCraftingArea(7, 'gang_bench'), true, 'area gang grade rule is enforced')
+playerData.gang.name = 'vagos'
+H.equal(registeredExports.CanUseCraftingArea(7, 'gang_bench'), false, 'different gang cannot use the area')
+playerData.gang.name = 'none'
+
+inventory[1].amount = 3
+H.equal(registeredExports.CraftAtArea(7, 'mechanic_bench', 'not_offered'), false,
+    'area craft rejects a recipe that the bench does not offer')
+H.equal(registeredExports.CraftAtArea(7, 'mechanic_bench', 'board'), true,
+    'nearby authorized player can commit an offered recipe')
+
+invoking = 'different-owner'
+H.equal(registeredExports.RemoveCraftingArea('mechanic_bench'), false, 'another resource cannot remove an owned area')
 
 H.finish()
