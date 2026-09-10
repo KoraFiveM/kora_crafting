@@ -119,11 +119,11 @@ local function registerArea(area)
     local location = area.location
     local live = { name = name, options = options }
     if location.type == 'model' or location.type == 'sphere' then
-        live.zone = QB.interact.addCircleZone(name, location.coords, location.radius, { options = options }, location.debug)
+        live.zone = QB.interact.addCircleZone(name, location.coords, location.radius, options, location.debug)
         live.named = true
     elseif location.type == 'box' then
         local size = { x = location.size.x, y = location.size.y, z = location.size.z, w = location.rotation }
-        live.zone = QB.interact.addBoxZone(name, location.coords, size, { options = options }, location.debug)
+        live.zone = QB.interact.addBoxZone(name, location.coords, size, options, location.debug)
         live.named = true
     else
         live.zone = QB.zones.poly(zoneOptions(area, enter, exit))

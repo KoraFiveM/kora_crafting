@@ -2,6 +2,7 @@ local H = dofile('test/harness.lua')
 
 local registeredExports, events = {}, {}
 local zones, scopedEntities = {}, 0
+local circleOptions, boxOptions
 
 exports = function(name, callback) registeredExports[name] = callback end
 Citizen = { Await = function(value) return value end }
@@ -35,8 +36,14 @@ QB = {
         poly = function(options) return zoneHandle('poly', options) end,
     },
     interact = {
-        addCircleZone = function(_, _, _, _, _) return zoneHandle('named-sphere', {}) end,
-        addBoxZone = function(_, _, _, _, _) return zoneHandle('named-box', {}) end,
+        addCircleZone = function(_, _, _, options)
+            circleOptions = options
+            return zoneHandle('named-sphere', {})
+        end,
+        addBoxZone = function(_, _, _, options)
+            boxOptions = options
+            return zoneHandle('named-box', {})
+        end,
         removeZone = function() return true end,
         open = function() return true end,
         close = function() return true end,
@@ -63,6 +70,16 @@ H.equal(events['qbcrafting:client:areaRegistered']({
 }), true, 'model area creates client presentation')
 H.equal(scopedEntities, 1, 'model area creates one locally scoped prop')
 H.equal(zones[#zones].kind, 'named-sphere', 'model area gets a sphere interaction')
+H.equal(circleOptions[1].label, 'Craft Board', 'sphere interaction receives the non-empty recipe option array')
+
+H.equal(events['qbcrafting:client:areaRegistered']({
+    id = 'existing-box',
+    recipes = { { id = 'board', label = 'Board' } },
+    location = {
+        type = 'box', coords = { x = 1, y = 2, z = 3 }, size = { x = 3, y = 2, z = 2 }, rotation = 45,
+    },
+}), true, 'existing-world box creates client presentation')
+H.equal(boxOptions[1].label, 'Craft Board', 'box interaction receives the non-empty recipe option array')
 
 H.equal(events['qbcrafting:client:areaRegistered']({
     id = 'existing-poly',
