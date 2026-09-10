@@ -34,15 +34,17 @@ exports.qbcrafting:RegisterCraftable({
     },
 })
 
-local crafted, resultOrError = exports.qbcrafting:CraftItem(source, 'repair_kit')
-local canCraft, reason = exports.qbcrafting:CanCraftItem(source, 'repair_kit')
+local crafted, resultOrError = exports.qbcrafting:CraftItem(source, 'repair_kit', trustedContext, amount)
+local canCraft, reason = exports.qbcrafting:CanCraftItem(source, 'repair_kit', trustedContext, amount)
 local items, skills = exports.qbcrafting:GetCraftingRequirements(source, 'repair_kit')
 ```
 
 `CraftItem` is server-only. A gameplay resource must validate its own station,
 distance, routing bucket, job, and action completion before calling it. An
 optional third argument may carry server-owned context to the hooks; never pass
-raw client-selected authority through it.
+raw client-selected authority through it. The optional fourth argument is a
+positive batch amount (up to 100) and defaults to one. Ingredient consumption,
+all outputs, post-hook data, events, and skill rewards reflect that batch.
 
 `skills` is preferable to repeating ordinary level gates in every pre hook:
 it makes `CanCraftItem` and requirement displays accurate. Use `hooks.pre` for
@@ -134,3 +136,15 @@ custom rule before the atomic inventory transaction runs. Areas are owned by
 their registering resource and disappear on resource stop. Related server
 exports are `RemoveCraftingArea`, `GetCraftingArea`, `CanUseCraftingArea`, and
 `CraftAtArea`.
+
+Entering an area exposes one `Open Crafting` world interaction. It opens the
+shared qblib AppShell with every recipe offered by that station, its outputs,
+live ingredient counts, required skill levels, XP rewards, and the current
+failure reason. Recipes that cannot currently be made use the neutral treatment
+and a disabled craft button. Craftable recipes prompt for a bounded amount and
+an explicit ingredient-removal confirmation. Only the recipe collection
+scrolls. Confirming closes the AppShell, then qblib's cancellable progress bar
+owns the crafting animation, temporary hammer prop, control restrictions, and
+guaranteed cleanup on every exit path. The server then commits the complete
+scaled ingredient/output batch atomically and returns an exact removed/received
+notification.

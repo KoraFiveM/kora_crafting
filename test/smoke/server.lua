@@ -10,19 +10,24 @@ local skillLevel, committed, awardedXp = 10, 0, 0
 local inventoryExports = {}
 function inventoryExports.RegisterCraftRecipe(_, id, recipe) recipes[id] = recipe return true end
 function inventoryExports.RemoveCraftRecipe(_, id) recipes[id] = nil return true end
-function inventoryExports.CanCraftRecipe(_, _, id)
+function inventoryExports.CanCraftRecipe(_, _, id, amount)
     local recipe = recipes[id]
-    local needed = recipe.ingredients[1].amount
+    local needed = recipe.ingredients[1].amount * (amount or 1)
     return inventory[1].amount >= needed, 'missing crafting ingredient: wood'
 end
-function inventoryExports.CraftItem(_, source, id, context)
+function inventoryExports.CraftItem(_, source, id, context, amount)
     local recipe = recipes[id]
+    amount = amount or 1
     local allowed, reason = recipe.access(source, recipe, context)
     if allowed == false then return false, reason end
-    if inventory[1].amount < recipe.ingredients[1].amount then return false, 'missing crafting ingredient: wood' end
-    inventory[1].amount = inventory[1].amount - recipe.ingredients[1].amount
+    if inventory[1].amount < recipe.ingredients[1].amount * amount then return false, 'missing crafting ingredient: wood' end
+    inventory[1].amount = inventory[1].amount - recipe.ingredients[1].amount * amount
     committed = committed + 1
-    return true, recipe.outputs
+    local outputs = {}
+    for index, output in ipairs(recipe.outputs) do
+        outputs[index] = { name = output.name, amount = output.amount * amount, metadata = output.metadata }
+    end
+    return true, outputs
 end
 function inventoryExports.GetItemsByName(_, _, name)
     return name == 'wood' and inventory or {}
@@ -92,6 +97,7 @@ H.equal(#recipes.board.outputs, 2, 'all outputs reach the atomic inventory recip
 H.equal(registeredExports.CanCraftItem(7, 'board'), true, 'server feasibility checks items and skills')
 
 preResult = false
+H.equal(registeredExports.CanCraftItem(7, 'board'), false, 'feasibility includes the dynamic pre-hook policy')
 H.equal(registeredExports.CraftItem(7, 'board'), false, 'exact false from pre hook cancels')
 H.equal(inventory[1].amount, 3, 'cancelled pre hook changes no ingredients')
 H.equal(committed, 0, 'cancelled pre hook gives no output')
@@ -103,6 +109,12 @@ H.equal(postResult, true, 'post hook runs after success')
 H.equal(postSawCommit, 1, 'post hook observes the committed transaction')
 H.equal(awardedXp, 15, 'successful craft awards its declarative skill XP')
 
+inventory[1].amount = 6
+H.equal(registeredExports.CraftItem(7, 'board', nil, 3), true, 'batch crafting is accepted')
+H.equal(inventory[1].amount, 0, 'batch crafting consumes every scaled ingredient in one commit')
+H.equal(awardedXp, 60, 'batch crafting scales skill rewards')
+
+inventory[1].amount = 1
 local requirements, skills = registeredExports.GetCraftingRequirements(7, 'board')
 H.equal(requirements[1].required, 2, 'requirements expose required amount')
 H.equal(requirements[1].have, 1, 'requirements expose current amount')
@@ -130,6 +142,10 @@ H.equal(registeredExports.RegisterCraftingArea({
 }), true, 'model-backed crafting area registers')
 H.equal(registeredExports.CanUseCraftingArea(7, 'mechanic_bench'), true,
     'area allows a nearby on-duty player with the required job grade and skill')
+local snapshot = registeredExports['qbcrafting:server:areaSnapshotRequested'](7, 'mechanic_bench')
+H.equal(snapshot.label, 'mechanic_bench', 'area snapshot exposes station presentation data')
+H.equal(snapshot.recipes[1].requirements[1].have, 1, 'area snapshot includes live ingredient counts')
+H.equal(snapshot.recipes[1].canCraft, false, 'area snapshot reports current craftability')
 H.equal(registeredExports.RegisterCraftingArea({
     id = 'native_box',
     recipes = { 'board' },
@@ -184,6 +200,15 @@ H.equal(registeredExports.CraftAtArea(7, 'mechanic_bench', 'not_offered'), false
     'area craft rejects a recipe that the bench does not offer')
 H.equal(registeredExports.CraftAtArea(7, 'mechanic_bench', 'board'), true,
     'nearby authorized player can commit an offered recipe')
+
+inventory[1].amount = 4
+local batchCrafted, _, _, confirmation = registeredExports['qbcrafting:server:areaCraftRequested'](
+    7, 'mechanic_bench', 'board', 2)
+H.equal(batchCrafted, true, 'area callback accepts a server-bounded craft amount')
+H.equal(confirmation.removed[1].amount, 4, 'area callback confirms the scaled ingredient removal')
+H.equal(confirmation.received[1].amount, 2, 'area callback confirms the scaled output grant')
+H.equal(registeredExports['qbcrafting:server:areaCraftRequested'](7, 'mechanic_bench', 'board', 'many'), false,
+    'area callback rejects a malformed crafting amount')
 
 invoking = 'different-owner'
 H.equal(registeredExports.RemoveCraftingArea('mechanic_bench'), false, 'another resource cannot remove an owned area')

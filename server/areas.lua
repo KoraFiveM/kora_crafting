@@ -294,22 +294,109 @@ local function allPublicAreas()
     return result
 end
 
-local function craftAtArea(source, areaId, recipeId)
+local function outputData(entry)
+    local definition = exports.qbcore:getShared('items', entry.item)
+        or exports.qbcore:getShared('weapons', entry.item)
+    return {
+        item = entry.item,
+        label = definition and definition.label or entry.item,
+        amount = entry.amount,
+        metadata = copy(entry.metadata),
+        image = definition and definition.imageUrl or nil,
+        description = definition and definition.description or nil,
+    }
+end
+
+local function areaSnapshot(source, id)
+    local area = type(id) == 'string' and areas[id] or nil
+    if not area then return nil, 'unknown crafting area' end
+    if not playerInside(source, area) then return nil, 'you are too far from this crafting area' end
+    local allowed, accessErr = checkAccess(source, area)
+    if not allowed then return nil, accessErr end
+
+    local recipes = {}
+    for _, offered in ipairs(area.recipes) do
+        local craftable = exports.qbcrafting:GetCraftable(offered.id)
+        if craftable then
+            local requirements, skills = exports.qbcrafting:GetCraftingRequirements(source, offered.id)
+            local canCraft, reason = exports.qbcrafting:CanCraftItem(source, offered.id, { area = area.id })
+            local maxCraftAmount = 0
+            if canCraft then
+                local upper = 100
+                for _, requirement in ipairs(requirements or {}) do
+                    upper = math.min(upper, math.floor(requirement.have / requirement.required))
+                end
+                local low = 1
+                while low <= upper do
+                    local middle = math.floor((low + upper) / 2)
+                    if exports.qbinventory:CanCraftRecipe(source, offered.id, middle) then
+                        maxCraftAmount = middle
+                        low = middle + 1
+                    else
+                        upper = middle - 1
+                    end
+                end
+            end
+            local outputs = {}
+            for _, entry in ipairs(craftable.give) do outputs[#outputs + 1] = outputData(entry) end
+            local failureReason
+            if not canCraft then failureReason = reason end
+            recipes[#recipes + 1] = {
+                id = craftable.id,
+                label = craftable.label,
+                canCraft = canCraft == true,
+                reason = failureReason,
+                requirements = requirements or {},
+                skills = skills or {},
+                outputs = outputs,
+                skillRewards = copy(craftable.skillRewards),
+                maxCraftAmount = maxCraftAmount,
+            }
+        end
+    end
+    return { id = area.id, label = area.label, recipes = recipes }
+end
+
+local function craftAtArea(source, areaId, recipeId, amount)
     local area = type(areaId) == 'string' and areas[areaId] or nil
     if not area then return false, 'unknown crafting area' end
     if type(recipeId) ~= 'string' or not area.recipeIds[recipeId] then return false, 'recipe is not offered here' end
     if not playerInside(source, area) then return false, 'you are too far from this crafting area' end
     local allowed, accessErr = checkAccess(source, area)
     if not allowed then return false, accessErr end
-    return exports.qbcrafting:CraftItem(source, recipeId, { area = area.id })
+    return exports.qbcrafting:CraftItem(source, recipeId, { area = area.id }, amount)
 end
 
 QB.callback.register('qbcrafting:server:areasRequested', function()
     return allPublicAreas()
 end, { rateLimit = { max = 4, window = 5000 } })
 
-QB.callback.register('qbcrafting:server:areaCraftRequested', function(source, areaId, recipeId)
-    return craftAtArea(source, areaId, recipeId)
+QB.callback.register('qbcrafting:server:areaSnapshotRequested', function(source, areaId)
+    return areaSnapshot(source, areaId)
+end, { rateLimit = { max = 10, window = 5000 } })
+
+QB.callback.register('qbcrafting:server:areaCraftRequested', function(source, areaId, recipeId, amount)
+    local number = amount == nil and 1 or tonumber(amount)
+    if not number or number ~= number or number == math.huge or number == -math.huge or number % 1 ~= 0 then
+        return false, 'invalid crafting amount', areaSnapshot(source, areaId)
+    end
+    amount = math.floor(number)
+    local craftable = type(recipeId) == 'string' and exports.qbcrafting:GetCraftable(recipeId) or nil
+    local crafted, result = craftAtArea(source, areaId, recipeId, amount)
+    local snapshot = areaSnapshot(source, areaId)
+    if not crafted then return false, result, snapshot end
+    local confirmation = { removed = {}, received = {} }
+    for _, entry in ipairs(craftable.take) do
+        confirmation.removed[#confirmation.removed + 1] = outputData({
+            item = entry.item, amount = entry.amount * amount, metadata = entry.metadata,
+        })
+    end
+    for _, entry in ipairs(craftable.give) do
+        confirmation.received[#confirmation.received + 1] = outputData({
+            item = entry.item, amount = entry.amount * amount, metadata = entry.metadata,
+        })
+    end
+    return true, snapshot, nil, confirmation
 end, { rateLimit = { max = 10, window = 5000 } })
 
 AddEventHandler('onResourceStop', function(stoppedResource)

@@ -67,7 +67,7 @@ local function normaliseSkillRewards(raw)
     return result
 end
 
-local function publicCraftable(craftable, context)
+local function publicCraftable(craftable, context, amount)
     return {
         id = craftable.id,
         label = craftable.label,
@@ -76,6 +76,7 @@ local function publicCraftable(craftable, context)
         skills = copy(craftable.skills),
         skillRewards = copy(craftable.skillRewards),
         context = context,
+        amount = amount or 1,
     }
 end
 
@@ -190,13 +191,15 @@ end
 
 ---@param source integer
 ---@param id string
+---@param context? table
+---@param amount? integer
 ---@return boolean, string|nil
-local function canCraftItem(source, id)
+local function canCraftItem(source, id, context, amount)
     local craftable = craftables[id]
     if not craftable then return false, 'unknown craftable' end
-    local skilled, skillErr = checkSkills(source, craftable)
-    if not skilled then return false, skillErr end
-    return exports.qbinventory:CanCraftRecipe(source, id)
+    local allowed, accessErr = runPreHook(source, craftable, context)
+    if not allowed then return false, accessErr end
+    return exports.qbinventory:CanCraftRecipe(source, id, amount)
 end
 
 local function shallowlyMatches(actual, required)
@@ -251,16 +254,23 @@ end
 ---@param source integer
 ---@param id string
 ---@param context? table
+---@param amount? integer
 ---@return boolean, table|string
-local function craftItem(source, id, context)
+local function craftItem(source, id, context, amount)
     local craftable = craftables[id]
     if not craftable then return false, 'unknown craftable' end
-    local crafted, result = exports.qbinventory:CraftItem(source, id, context)
+    local number = amount == nil and 1 or tonumber(amount)
+    if not number or number ~= number or number == math.huge or number == -math.huge or number % 1 ~= 0 then
+        return false, 'invalid crafting amount'
+    end
+    amount = math.floor(number)
+    if amount < 1 or amount > 100 then return false, 'invalid crafting amount' end
+    local crafted, result = exports.qbinventory:CraftItem(source, id, context, amount)
     if not crafted then return false, result end
-    local data = publicCraftable(craftable, context)
+    local data = publicCraftable(craftable, context, amount)
     if next(craftable.skillRewards) and GetResourceState('qbskills') == 'started' then
         for skill, amount in pairs(craftable.skillRewards) do
-            local awarded, awardErr = exports.qbskills:addRep(source, skill, amount)
+            local awarded, awardErr = exports.qbskills:addRep(source, skill, amount * data.amount)
             if not awarded then
                 print(('^3[qbcrafting]^7 failed to award %s XP for %s: %s'):format(skill, id, tostring(awardErr)))
             end
