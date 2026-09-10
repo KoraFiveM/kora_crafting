@@ -64,6 +64,17 @@ exports.qbcrafting = setmetatable({}, {
     end,
 })
 
+-- FiveM vectors report `vector3`/`vector4` from type(), unlike ordinary Lua
+-- tables. Tag test values so the standalone harness exercises that contract.
+local luaType = type
+type = function(value)
+    local metatable = getmetatable(value)
+    return metatable and metatable.vectorType or luaType(value)
+end
+local function nativeVector(kind, x, y, z, w)
+    return setmetatable({ x = x, y = y, z = z, w = w }, { vectorType = kind })
+end
+
 local preResult, postResult, postSawCommit
 local ok, err = registeredExports.RegisterCraftable({
     id = 'board',
@@ -114,11 +125,20 @@ H.equal(registeredExports.RegisterCraftingArea({
     id = 'mechanic_bench',
     recipes = { 'board' },
     model = 'prop_tool_bench02',
-    coords = { x = 10, y = 20, z = 30, w = 90 },
+    coords = nativeVector('vector4', 10, 20, 30, 90),
     rules = { jobs = { mechanic = 2 }, onDuty = true, skills = { crafting = 5 } },
 }), true, 'model-backed crafting area registers')
 H.equal(registeredExports.CanUseCraftingArea(7, 'mechanic_bench'), true,
     'area allows a nearby on-duty player with the required job grade and skill')
+H.equal(registeredExports.RegisterCraftingArea({
+    id = 'native_box',
+    recipes = { 'board' },
+    zone = {
+        type = 'box',
+        coords = nativeVector('vector3', 10, 20, 30),
+        size = nativeVector('vector3', 3, 3, 3),
+    },
+}), true, 'native FiveM vectors are accepted for box coordinates and size')
 
 playerData.job.onduty = false
 H.equal(registeredExports.CanUseCraftingArea(7, 'mechanic_bench'), false, 'area duty rule is enforced')

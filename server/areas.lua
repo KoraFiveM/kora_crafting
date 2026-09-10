@@ -18,7 +18,9 @@ local function validId(value)
 end
 
 local function coords(raw, field)
-    if type(raw) ~= 'table' or type(raw.x) ~= 'number' or type(raw.y) ~= 'number' or type(raw.z) ~= 'number' then
+    local rawType = type(raw)
+    if (rawType ~= 'table' and rawType ~= 'vector3' and rawType ~= 'vector4')
+        or type(raw.x) ~= 'number' or type(raw.y) ~= 'number' or type(raw.z) ~= 'number' then
         return nil, field .. ' coordinates must be vector-like'
     end
     return { x = raw.x + 0.0, y = raw.y + 0.0, z = raw.z + 0.0, w = tonumber(raw.w or raw.heading) }
@@ -44,7 +46,8 @@ local function normaliseZone(raw)
 
     if kind == 'box' then
         local center, err = coords(raw.coords, 'box')
-        local size = type(raw.size) == 'table' and raw.size or nil
+        local sizeType = type(raw.size)
+        local size = (sizeType == 'table' or sizeType == 'vector3' or sizeType == 'vector4') and raw.size or nil
         if not center then return nil, err end
         if not size or not positiveNumber(size.x) or not positiveNumber(size.y) or not positiveNumber(size.z) then
             return nil, 'box size must contain positive x, y, and z values'
