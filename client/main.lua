@@ -1,10 +1,6 @@
 local function craftability(id)
     if type(id) ~= 'string' then return nil, 'invalid craftable id' end
-    local ok, result = pcall(function()
-        return Citizen.Await(QB.callback.trigger('qbcrafting:server:craftability', id))
-    end)
-    if not ok then return nil, tostring(result) end
-    return result
+    return QB.callback.trigger('qbcrafting:server:craftability', id)
 end
 
 ---@param id string
@@ -220,10 +216,8 @@ local function appDefinition()
                 }
             end
 
-            local request = table.pack(pcall(QB.callback.trigger,
-                'qbcrafting:server:areaCraftRequested', areaId, recipe.id, amount))
-            if not request[1] then error(request[2]) end
-            local crafted, result, _, confirmation = table.unpack(request, 2, request.n)
+            local crafted, result, _, confirmation = QB.callback.trigger(
+                'qbcrafting:server:areaCraftRequested', areaId, recipe.id, amount)
             local successMessage = confirmation and ('Removed %s. Received %s.'):format(
                 transactionSummary(confirmation.removed), transactionSummary(confirmation.received))
                 or ('Crafted %dx %s.'):format(amount, recipe.label)
