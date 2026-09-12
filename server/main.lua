@@ -2,12 +2,7 @@ local resourceName = GetCurrentResourceName()
 local craftables = {}
 local owners = {}
 
-local function copy(value)
-    if type(value) ~= 'table' then return value end
-    local result = {}
-    for key, nested in pairs(value) do result[copy(key)] = copy(nested) end
-    return result
-end
+local copy = QB.util.deepClone
 
 local function invokingResource()
     return GetInvokingResource() or resourceName

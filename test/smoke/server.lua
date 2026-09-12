@@ -50,7 +50,15 @@ exports = setmetatable({ qbinventory = inventoryExports, qbcore = coreExports, q
     __call = function(_, name, callback) registeredExports[name] = callback end,
 })
 Config = { craftables = {} }
-QB = { callback = { register = function(name, callback) registeredExports[name] = callback end } }
+QB = {
+    callback = { register = function(name, callback) registeredExports[name] = callback end },
+    util = { deepClone = function(value)
+        if type(value) ~= 'table' then return value end
+        local result = {}
+        for key, nested in pairs(value) do result[QB.util.deepClone(key)] = QB.util.deepClone(nested) end
+        return result
+    end },
+}
 GetCurrentResourceName = function() return 'qbcrafting' end
 GetInvokingResource = function() return invoking end
 GetResourceState = function(name) return name == 'qbskills' and 'started' or 'missing' end
