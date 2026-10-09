@@ -1,22 +1,33 @@
 fx_version 'cerulean'
 game 'gta5'
 lua54 'yes'
-
-name 'qbcrafting'
-author 'qbcore2'
-version '0.2.0'
-description 'Server-authoritative crafting recipes, benches, and access rules'
+description 'Crafting stations and recipes, built and edited in game'
+version '1.0.0'
 
 dependency 'qblib'
 dependency 'qbcore'
-dependency 'qbinventory'
+dependency 'qbsql'
 
-shared_script '@qblib/init.lua'
-
-server_scripts {
-    'config.lua',
-    'server/main.lua',
-    'server/areas.lua',
+shared_scripts {
+    '@qblib/init.lua',
+    '@qbcore/init.lua',
+    '@qbsql/init.lua',
+    'shared/constants.lua',
+    'shared/config.lua',
 }
 
-client_script 'client/main.lua'
+client_scripts {
+    'client/_functions.lua',
+    'client/craft.lua',
+    'client/creator.lua',
+}
+
+-- Order matters here: each file uses the ones before it.
+server_scripts {
+    'server/_functions.lua',
+    'server/skills.lua',
+    'server/rules.lua',
+    'server/data.lua',
+    'server/creator.lua',
+    'server/craft.lua',
+}
