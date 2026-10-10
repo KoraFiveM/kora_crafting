@@ -1,36 +1,23 @@
--- The crafting creator (/craftCreator). Two pages, each a grid and an edit page:
---   Recipes   what it makes, what it needs, the animation and progress bar, the skill, xp and level
---   Stations  the target text, the recipes on it, and where it is (each location can be locked)
--- Every change is saved by the server the moment it is made; the server answers with all the data.
 
 local APP_ID = 'qbcrafting:creator'
 
 local data = { recipes = {}, stations = {}, items = {}, skills = {}, skillsAvailable = false }
 local selectedRecipe, selectedStation = nil, nil -- ids
 local currentView = 'recipes'
+local stationRecipeQuery = '' -- the search box above the recipes you can add to a station
 local pendingTool = nil
--- Bumped whenever a page is opened or saved. It is part of the form ids, so the forms are built again
--- from the saved data instead of showing what was left in them.
 local revision = 0
 
-local itemSearch = { query = '', results = {}, total = 0 } -- the "what it makes" grid
-local materialSearch = { query = nil, results = {}, total = 0 } -- search for materials
-local hideItemGrid = false -- hides the "what it makes" results grid
-
--- ----------------------------------------------------------------------------
--- Small helpers
--- ----------------------------------------------------------------------------
+local itemSearch = { query = nil, results = {}, total = 0 } -- one search; each card can be the result or a material
 
 local function notice(message, tone)
     return { tone = tone or 'success', message = message }
 end
 
--- A form value as trimmed text ('' when it is missing or not text).
 local function text(value)
     return type(value) == 'string' and value:match('^%s*(.-)%s*$') or ''
 end
 
--- Same, but nil when empty.
 local function optionalText(value)
     local result = text(value)
     return result ~= '' and result or nil
@@ -40,13 +27,11 @@ local function toast(message)
     QB.notify.send({ title = 'Crafting Creator', message = message, type = 'error' })
 end
 
--- Asks the admin to confirm. True when they did.
 local function confirmed(title, message)
     local answer = QB.nui.openAlert({ title = title, message = message, confirmLabel = 'Delete' })
     return answer and answer.confirmed == true
 end
 
--- Asks for a name. Returns it, or nil when cancelled.
 local function askName(title, label)
     local result = QB.nui.openInputDialog({
         { id = 'name', label = label, type = 'text', required = true },
@@ -109,9 +94,6 @@ local function blockId(name, id)
     return ('%s:%s:%d'):format(name, id, revision)
 end
 
--- ----------------------------------------------------------------------------
--- Recipes: the grid
--- ----------------------------------------------------------------------------
 
 local function makesText(recipe)
     if not recipe.receive then return 'Makes nothing yet' end
@@ -133,6 +115,26 @@ local function skillLabel(name)
     return name
 end
 
+local function tagMetadata(recipe, metadata)
+    metadata = metadata or {}
+    if recipe.tag then metadata[#metadata + 1] = { label = 'Tag', value = recipe.tag } end
+    return metadata
+end
+
+local function recipeMatches(recipe, query)
+    if query == '' then return true end
+    local haystack = table.concat({
+        recipe.label or '',
+        recipe.tag or '',
+        recipe.receive and recipe.receive.item or '',
+        recipe.receive and itemLabel(recipe.receive.item) or '',
+    }, ' '):lower()
+    for word in query:lower():gmatch('%S+') do
+        if not haystack:find(word, 1, true) then return false end
+    end
+    return true
+end
+
 local function recipesView()
     local items = {}
     for _, recipe in ipairs(data.recipes) do
@@ -144,6 +146,7 @@ local function recipesView()
             }
         end
         if not recipe.receive then metadata[#metadata + 1] = { label = 'Status', value = 'Not finished: pick the item it makes' } end
+        tagMetadata(recipe, metadata)
 
         items[#items + 1] = {
             id = recipe.id,
@@ -175,24 +178,32 @@ local function recipesView()
     }
 end
 
--- ----------------------------------------------------------------------------
--- Recipes: the edit page
--- ----------------------------------------------------------------------------
-
--- Search results as cards with one button. addedText shows instead of the button for items already picked.
-local function resultCards(results, actionPrefix, buttonLabel, buttonIcon, addedText)
+local function resultCards(results, recipe)
+    local makesItem = recipe.receive and recipe.receive.item
     local cards = {}
     for _, result in ipairs(results) do
+        local isResult = result.name == makesItem
+        local metadata = {}
+        if isResult then metadata[#metadata + 1] = { label = 'Makes', value = 'This is the result' } end
+        if result.added then metadata[#metadata + 1] = { label = 'Needs', value = 'In the recipe' } end
+
+        local actions = {}
+        if not isResult then
+            actions[#actions + 1] = { id = 'recipe:pick:' .. result.name, label = 'Set as result', icon = 'Check', variant = 'primary' }
+        end
+        if not result.added then
+            actions[#actions + 1] = { id = 'recipe:add:' .. result.name, label = 'Add to recipe', icon = 'Plus', variant = 'primary' }
+        end
+
         cards[#cards + 1] = {
             id = result.name,
             label = result.label,
             description = result.name,
             image = result.image,
-            metadata = result.added and { { label = 'Status', value = addedText } } or nil,
-            actions = result.added and {} or {
-                { id = actionPrefix .. result.name, label = buttonLabel, icon = buttonIcon, variant = 'primary' },
-            },
+            metadata = #metadata > 0 and metadata or nil,
+            actions = actions,
         }
+        if #cards == 15 then break end
     end
     return cards
 end
@@ -202,6 +213,8 @@ local function detailsForm(recipe)
 
     local fields = {
         { id = 'label', label = 'Recipe name', type = 'text', required = true, default = recipe.label },
+        { id = 'tag', label = 'Tag', type = 'text', default = recipe.tag or '',
+            description = 'Optional. Players never see it. Search for it when adding recipes to a station.' },
     }
     if recipe.receive then
         fields[#fields + 1] = { id = 'amount', label = 'Amount made', type = 'number', min = 1, max = 1000, default = recipe.receive.amount }
@@ -219,7 +232,6 @@ local function detailsForm(recipe)
     fields[#fields + 1] = { id = 'disable', label = 'Disable while crafting', type = 'multiselect', options = ProgressDisableOptions,
         default = disableList(progress.disable), description = 'Controls blocked while the progress bar runs.' }
 
-    -- Skill, level and xp are always here, and each one can be left empty.
     if #data.skills > 0 or recipe.skill then
         local options, known = { { value = 'none', label = 'No skill' } }, {}
         for _, skill in ipairs(data.skills) do
@@ -256,17 +268,6 @@ local function recipeView()
     end
 
     local blocks = { detailsForm(recipe) }
-
-    -- Choose the item it makes: the search box, then what it makes now, then the grid to pick from.
-    local picked = resultCards(itemSearch.results, 'recipe:pick:', 'Select', 'Check', 'Selected')
-    local more = itemSearch.total > #picked and (' of ' .. itemSearch.total) or ''
-    blocks[#blocks + 1] = {
-        type = 'form', id = 'recipe-item-search', title = 'Choose the item it makes',
-        fields = { { id = 'itemQuery', label = 'Search items', type = 'text', default = itemSearch.query or '',
-            description = 'Type part of an item name or label and press Search. Empty shows the first items.' } },
-        action = { id = 'recipe:itemsearch', label = 'Search' },
-    }
-
     local makes = recipe.receive
     blocks[#blocks + 1] = {
         type = 'list', id = 'recipe-makes', layout = 'cards', columns = 3, title = 'What it makes',
@@ -274,38 +275,21 @@ local function recipeView()
             id = makes.item, label = itemLabel(makes.item), description = makes.item, image = itemImage(makes.item),
             metadata = { { label = 'Amount', value = ('%dx'):format(makes.amount) } },
         } } or {},
-        empty = 'Nothing chosen yet. Pick an item from the grid below.',
+        empty = 'Nothing chosen yet. Search below and press Set as result.',
     }
 
+    local found = resultCards(itemSearch.results, recipe)
     blocks[#blocks + 1] = {
-        type = 'actions',
-        actions = { {
-            id = 'recipe:grid', variant = 'primary',
-            label = hideItemGrid and 'Show grid' or 'Hide grid',
-            icon = hideItemGrid and 'Eye' or 'EyeOff',
-        } },
-    }
-    if not hideItemGrid then
-        blocks[#blocks + 1] = {
-            type = 'list', id = 'recipe-item-results', layout = 'cards', columns = 4,
-            title = itemSearch.query ~= '' and ('Results for "%s" (%d%s)'):format(itemSearch.query, #picked, more) or ('Items (%d%s)'):format(#picked, more),
-            items = picked, empty = 'No items match that search.',
-        }
-    end
-
-    -- Materials: search, then add.
-    local found = resultCards(materialSearch.results, 'recipe:add:', 'Add', 'Plus', 'Already in the recipe')
-    blocks[#blocks + 1] = {
-        type = 'form', id = 'recipe-search', title = 'Add materials',
-        fields = { { id = 'query', label = 'Search all items', type = 'text', default = materialSearch.query or '',
-            description = 'Part of an item name or label. Add the ones this recipe should need below.' } },
+        type = 'form', id = 'recipe-search', title = 'Find items',
+        fields = { { id = 'query', label = 'Search all items', type = 'text', default = itemSearch.query or '',
+            description = 'Part of an item name or label. Press Set as result for what it makes, or Add to recipe for what it needs.' } },
         action = { id = 'recipe:search', label = 'Search' },
     }
-    if materialSearch.query then
-        local extra = materialSearch.total > #found and (' of ' .. materialSearch.total) or ''
+    if itemSearch.query then
+        local extra = itemSearch.total > #found and (' of ' .. itemSearch.total) or ''
         blocks[#blocks + 1] = {
             type = 'list', id = 'recipe-results', layout = 'cards', columns = 3,
-            title = ('Results for "%s" (%d%s)'):format(materialSearch.query, #found, extra),
+            title = ('Results for "%s" (%d%s)'):format(itemSearch.query, #found, extra),
             items = found, empty = 'No items match that search.',
         }
     end
@@ -335,6 +319,10 @@ local function recipeView()
     }
 
     blocks[#blocks + 1] = {
+        type = 'actions',
+        actions = { { id = 'recipe:duplicate', label = 'Duplicate recipe', icon = 'Copy', variant = 'primary' } },
+    }
+    blocks[#blocks + 1] = {
         type = 'actions', title = 'Danger zone',
         actions = { { id = 'recipe:delete', label = 'Delete recipe', variant = 'destructive' } },
     }
@@ -345,10 +333,6 @@ local function recipeView()
         content = { title = recipe.label, description = description, blocks = blocks },
     }
 end
-
--- ----------------------------------------------------------------------------
--- Stations
--- ----------------------------------------------------------------------------
 
 local function stationsView()
     local items = {}
@@ -399,6 +383,7 @@ local function stationView()
             onStation[#onStation + 1] = {
                 id = id, label = recipe.label, description = makesText(recipe),
                 image = recipe.receive and itemImage(recipe.receive.item) or nil,
+                metadata = #tagMetadata(recipe) > 0 and tagMetadata(recipe) or nil,
                 actions = { { id = 'station:remove:' .. id, label = 'Remove', icon = 'Trash2', variant = 'destructive' } },
             }
         end
@@ -406,11 +391,13 @@ local function stationView()
 
     local available = {}
     for _, recipe in ipairs(data.recipes) do
-        if not taken[recipe.id] then
+        if not taken[recipe.id] and recipeMatches(recipe, stationRecipeQuery) then
+            local metadata = tagMetadata(recipe)
+            if not recipe.receive then metadata[#metadata + 1] = { label = 'Status', value = 'Not finished: players will not see it' } end
             available[#available + 1] = {
                 id = recipe.id, label = recipe.label, description = makesText(recipe),
                 image = recipe.receive and itemImage(recipe.receive.item) or nil,
-                metadata = not recipe.receive and { { label = 'Status', value = 'Not finished: players will not see it' } } or nil,
+                metadata = #metadata > 0 and metadata or nil,
                 actions = { { id = 'station:add:' .. recipe.id, label = 'Add', icon = 'Plus', variant = 'primary' } },
             }
         end
@@ -452,9 +439,15 @@ local function stationView()
                     empty = 'No recipes yet. Add some below.',
                 },
                 {
+                    type = 'form', id = 'station-recipe-search', title = 'Find a recipe to add',
+                    fields = { { id = 'recipeQuery', label = 'Search recipes', type = 'text', default = stationRecipeQuery,
+                        description = 'Matches the recipe name, its tag, or the item it makes. Several words must all match. Empty shows every recipe.' } },
+                    action = { id = 'station:search', label = 'Search' },
+                },
+                {
                     type = 'list', id = 'station-available', layout = 'cards', columns = 3,
                     title = ('Recipes you can add (%d)'):format(#available), items = available,
-                    empty = 'Every recipe is on this station already.',
+                    empty = stationRecipeQuery ~= '' and 'No recipes match that search.' or 'Every recipe is on this station already.',
                 },
                 {
                     type = 'form', id = blockId('station-place', station.id), title = 'Place locations',
@@ -473,6 +466,10 @@ local function stationView()
                     title = ('Locations (%d)'):format(#locations), items = locations, empty = 'No locations yet.',
                 },
                 {
+                    type = 'actions',
+                    actions = { { id = 'station:duplicate', label = 'Duplicate station (settings and recipes only)', icon = 'Copy', variant = 'primary' } },
+                },
+                {
                     type = 'actions', title = 'Danger zone',
                     actions = { { id = 'station:delete', label = 'Delete station', variant = 'destructive' } },
                 },
@@ -480,10 +477,6 @@ local function stationView()
         },
     }
 end
-
--- ----------------------------------------------------------------------------
--- Keeping the page up to date
--- ----------------------------------------------------------------------------
 
 local function buildNavigation()
     local navigation = { recipesView() }
@@ -513,21 +506,10 @@ local function setData(result)
     if selectedStation and not stationEntry(selectedStation) then selectedStation = nil end
 end
 
-local function clearMaterialSearch()
-    materialSearch.query, materialSearch.results, materialSearch.total = nil, {}, 0
+local function clearItemSearch()
+    itemSearch.query, itemSearch.results, itemSearch.total = nil, {}, 0
 end
 
--- Fills the "what it makes" grid. An empty query lists the first items.
-local function runItemSearch(recipeId, query)
-    local result, err = QB.callback.trigger('qbcrafting:creator:items:search', query, 'item', recipeId)
-    if not result then return false, err end
-    itemSearch.query = query
-    itemSearch.results = result.results or {}
-    itemSearch.total = result.total or #itemSearch.results
-    return true
-end
-
--- Saves a change on the server. On success the answer replaces all the data.
 local function change(callback, ...)
     local result, err = QB.callback.trigger(callback, ...)
     if not result then return nil, err end
@@ -536,14 +518,9 @@ local function change(callback, ...)
     return result
 end
 
--- ----------------------------------------------------------------------------
--- Recipe actions
--- ----------------------------------------------------------------------------
-
 local function openRecipe(id, message)
     selectedRecipe = id
-    clearMaterialSearch()
-    runItemSearch(id, '')
+    clearItemSearch()
     revision = revision + 1
     currentView = 'recipe'
     return refresh(message)
@@ -580,21 +557,20 @@ local function saveGive(recipe, give, message)
     local updated = recipeEntry(recipe.id)
     local inRecipe = {}
     for _, entry in ipairs(updated and updated.give or {}) do inRecipe[entry.item] = true end
-    for _, found in ipairs(materialSearch.results) do found.added = inRecipe[found.name] == true end
+    for _, found in ipairs(itemSearch.results) do found.added = inRecipe[found.name] == true end
     return refresh(notice(message))
 end
 
--- The Details form -> what the server expects.
 local function detailsInput(values, recipe)
     local disable = {}
     for _, key in ipairs(type(values.disable) == 'table' and values.disable or {}) do disable[#disable + 1] = key end
 
-    -- Empty fields stay nil: skill, level and xp are all optional.
     local skill = optionalText(values.skill)
     if skill == 'none' then skill = nil end
 
     return {
         label = text(values.label),
+        tag = text(values.tag),
         amount = tonumber(values.amount),
         progress = { label = text(values.progressLabel), time = tonumber(values.progressTime), disable = disable },
         anim = { dict = text(values.animDict), clip = text(values.animClip), flag = tonumber(values.animFlag) },
@@ -632,23 +608,17 @@ local function recipeAction(actionId, values)
         return refresh(notice('Saved.'))
     end
 
-    if actionId == 'recipe:grid' then
-        hideItemGrid = not hideItemGrid
-        return refresh()
-    end
-
-    if actionId == 'recipe:itemsearch' then
-        local ok, err = runItemSearch(recipe.id, text(values.itemQuery))
-        if not ok then return fail(err or 'The search failed.') end
-        return refresh()
-    end
-
     local pickName = actionId:match('^recipe:pick:(.+)$')
     if pickName then
         local result, err = change('qbcrafting:creator:recipes:item', recipe.id, pickName)
         if not result then return fail(err or 'Failed to save.') end
-        runItemSearch(recipe.id, itemSearch.query or '') -- moves the "Selected" mark
-        return refresh(notice(('%s selected.'):format(itemLabel(pickName))))
+        return refresh(notice(('It now makes %s.'):format(itemLabel(pickName))))
+    end
+
+    if actionId == 'recipe:duplicate' then
+        local result, err = change('qbcrafting:creator:recipes:duplicate', recipe.id)
+        if not result then return fail(err or 'Failed to duplicate the recipe.') end
+        return openRecipe(result.id, notice('Recipe duplicated. You are now editing the copy.'))
     end
 
     if actionId == 'recipe:delete' then
@@ -664,21 +634,21 @@ local function recipeAction(actionId, values)
     if actionId == 'recipe:search' then
         local query = text(values.query)
         if query == '' then
-            clearMaterialSearch()
+            clearItemSearch()
             return refresh()
         end
 
-        local result, err = QB.callback.trigger('qbcrafting:creator:items:search', query, 'give', recipe.id)
+        local result, err = QB.callback.trigger('qbcrafting:creator:items:search', query, recipe.id)
         if not result then return fail(err or 'The search failed.') end
-        materialSearch.query, materialSearch.results = query, result.results or {}
-        materialSearch.total = result.total or #materialSearch.results
+        itemSearch.query, itemSearch.results = query, result.results or {}
+        itemSearch.total = result.total or #itemSearch.results
         return refresh()
     end
 
     local addName = actionId:match('^recipe:add:(.+)$')
     if addName then
         local found
-        for _, result in ipairs(materialSearch.results) do
+        for _, result in ipairs(itemSearch.results) do
             if result.name == addName then found = result break end
         end
         if not found then return fail('Search for that item again first.') end
@@ -719,12 +689,9 @@ local function recipeAction(actionId, values)
     return refresh()
 end
 
--- ----------------------------------------------------------------------------
--- Station actions
--- ----------------------------------------------------------------------------
-
 local function openStation(id, message)
     selectedStation = id
+    stationRecipeQuery = ''
     revision = revision + 1
     currentView = 'station'
     return refresh(message)
@@ -768,6 +735,11 @@ local function stationAction(actionId, values)
         return refresh(notice('Saved.'))
     end
 
+    if actionId == 'station:search' then
+        stationRecipeQuery = text(values.recipeQuery)
+        return refresh()
+    end
+
     local addId = actionId:match('^station:add:(.+)$')
     if addId then
         local result, err = change('qbcrafting:creator:stations:recipes', station.id, stationRecipeIds(station, nil, addId))
@@ -797,6 +769,12 @@ local function stationAction(actionId, values)
         return refresh(notice('Deleted.'))
     end
 
+    if actionId == 'station:duplicate' then
+        local result, err = change('qbcrafting:creator:stations:duplicate', station.id)
+        if not result then return fail(err or 'Failed to duplicate the station.') end
+        return openStation(result.id, notice('Station duplicated without locations. You are now editing the copy.'))
+    end
+
     if actionId == 'station:delete' then
         local message = ('This removes %s and all of its locations.'):format(station.label)
         if not confirmed('Delete station?', message) then return refresh() end
@@ -810,9 +788,6 @@ local function stationAction(actionId, values)
     return refresh()
 end
 
--- ----------------------------------------------------------------------------
--- The app
--- ----------------------------------------------------------------------------
 
 local function onAction(actionId, context)
     local values = context and context.value or {}
@@ -833,7 +808,6 @@ QB.nui.registerApp({
     onAction = onAction,
 })
 
--- Aims, then saves one placement, until the admin cancels.
 local function placeUntilCancelled(tool)
     while true do
         local aimed = QB.raycast.getCoords(tool.object and { type = 'object', object = tool.object } or {})
@@ -863,8 +837,7 @@ local function open()
     end
 
     setData(result)
-    clearMaterialSearch()
-    if selectedRecipe then runItemSearch(selectedRecipe, '') end
+    clearItemSearch()
 
     while true do
         QB.nui.updateApp(APP_ID, { navigation = buildNavigation() })

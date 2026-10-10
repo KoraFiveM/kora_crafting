@@ -13,11 +13,19 @@ DefaultProgress = {
     disable = { move = true, combat = true, car = true },
 }
 
+-- Milliseconds a player must wait between calls of the same kind.
+Cooldowns = {
+    menu = 1000,
+    begin = 1000,
+}
+
+-- Crafting log rows older than this many days are deleted.
+LogKeepDays = 30
+
 Limits = {
     recipeItems = 20,      -- different materials in one recipe
     recipeAmount = 1000,   -- amount of one material, or made
     materialResults = 24,  -- results shown when adding materials
-    pickerResults = 36,    -- items shown in the "what it makes" grid
     stationLocations = 50,
     stationRecipes = 100,
     xp = 100000,

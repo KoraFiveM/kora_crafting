@@ -30,4 +30,5 @@ server_scripts {
     'server/data.lua',
     'server/creator.lua',
     'server/craft.lua',
+    'server/logs.lua',
 }

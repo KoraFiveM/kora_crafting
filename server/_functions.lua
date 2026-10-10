@@ -1,5 +1,3 @@
--- Helpers every server script uses. Anything that comes from a player or from the creator goes
--- through the validators below first.
 
 function decodeJson(raw, fallback)
     if type(raw) ~= 'string' or raw == '' then return fallback end
@@ -7,27 +5,23 @@ function decodeJson(raw, fallback)
     return ok and type(decoded) == 'table' and decoded or fallback
 end
 
--- A trimmed string of at most `max` characters, or nil when it is empty or not a string.
 function trim(value, max)
     if type(value) ~= 'string' or not value:match('%S') then return nil end
     return value:match('^%s*(.-)%s*$'):sub(1, max)
 end
 
--- A number inside [min, max] (rounded down when `whole`), or nil. Rejects NaN.
 function inRange(value, min, max, whole)
     local n = tonumber(value)
     if not n or n ~= n or n < min or n > max then return nil end
     return whole and math.floor(n) or n
 end
 
--- trim() plus a character check. nil = empty, false = it has characters the pattern does not allow.
 function cleanName(value, max, pattern)
     local text = trim(value, max)
     if not text then return nil end
     return text:match(pattern) and text or false
 end
 
--- { x, y, z } with every part a real number inside +-limit, or nil.
 function cleanVec(value, limit)
     if type(value) ~= 'table' then return nil end
     limit = limit or 10000.0
@@ -42,6 +36,32 @@ function copyTable(value)
     return copy
 end
 
+-- Cuts text to at most max characters (not bytes), so a multibyte name is never cut in half.
+function cutText(text, max)
+    text = tostring(text)
+    if not utf8.len(text) then text = (text:gsub('[\128-\255]', '?')) end
+    local stop = utf8.offset(text, max + 1)
+    return stop and text:sub(1, stop - 1) or text
+end
+
+-- One timer per key and player, so a player cannot repeat a call faster than its cooldown.
+local timers = {}
+
+function onCooldown(src, key)
+    return timers[key] ~= nil and timers[key][src] == true
+end
+
+function startCooldown(src, key, duration)
+    timers[key] = timers[key] or {}
+    timers[key][src] = true
+    SetTimeout(duration, function() timers[key][src] = nil end)
+end
+
+AddEventHandler('playerDropped', function()
+    local src = source
+    for _, byPlayer in pairs(timers) do byPlayer[src] = nil end
+end)
+
 function isAdmin(src)
     src = tonumber(src)
     return src ~= nil and src > 0 and IsPlayerAceAllowed(src, 'command')
@@ -54,14 +74,32 @@ function isNear(src, coords, radius)
     return QB.distance.player(src, vec3(x, y, z), radius or Config.Distance)
 end
 
--- ----------------------------------------------------------------------------
--- Who is the player: job and gang, for locked locations.
--- ----------------------------------------------------------------------------
+
+local logLimits = { name = 64, identifier = 64, action = 64, details = 16000 }
+
+local function license(src)
+    local ok, identifier = pcall(GetPlayerIdentifierByType, src, 'license')
+    return ok and identifier or 'unknown'
+end
+
+function logAction(src, action, details)
+    pcall(function()
+        src = tonumber(src) or 0
+        QB.sql.update(
+            'INSERT INTO `qbcrafting_logs` (`source`, `name`, `identifier`, `action`, `details`) VALUES (?, ?, ?, ?, ?)',
+            {
+                src,
+                cutText(GetPlayerName(src) or 'unknown', logLimits.name),
+                cutText(license(src), logLimits.identifier),
+                cutText(action, logLimits.action),
+                cutText(json.encode(details or {}), logLimits.details),
+            }
+        )
+    end)
+end
 
 local warnedPlayer = false
 
--- { job = 'police', gang = 'ballas' } for a player, or nil when it can not be read.
--- If your core is different, this is the one function to change.
 function playerAccess(src)
     local ok, player = pcall(function() return exports.qbcore:getPlayer(src) end)
     local data = ok and type(player) == 'table' and (player.PlayerData or player.playerData or player.data or player) or nil
@@ -78,7 +116,6 @@ function playerAccess(src)
     }
 end
 
--- A location with a gang and/or a job is open to a member of either one. No lock = open to everyone.
 function locationAllowed(src, location)
     if not (location.gang or location.job) then return true end
     local access = playerAccess(src)
@@ -87,16 +124,11 @@ function locationAllowed(src, location)
         or (location.job ~= nil and access.job == location.job)
 end
 
--- ----------------------------------------------------------------------------
--- Database rows
--- ----------------------------------------------------------------------------
-
 local function exists(tableName, id)
     local rows = QB.sql.query(('SELECT `id` FROM `%s` WHERE `id` = ? LIMIT 1'):format(tableName), { id })
     return rows and rows[1] ~= nil
 end
 
--- Inserts the row, or updates it when it already exists. Returns ok, err.
 function dbSaveRecipe(id, data)
     if exists('qbcrafting_recipes', id) then
         return QB.sql.update('UPDATE `qbcrafting_recipes` SET `data` = ? WHERE `id` = ?', { json.encode(data), id })

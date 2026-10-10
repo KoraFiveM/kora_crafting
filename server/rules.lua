@@ -1,6 +1,3 @@
--- Items, and the rules a recipe or a station has to pass before it is saved.
--- Everything here is global so the other server files can use it.
-
 local patterns = {
     name = '^[%w_%-%.]+$',   -- items and objects
     anim = '^[%w_@%-%.]+$',
@@ -11,9 +8,6 @@ local patterns = {
 local disableAllowed = {}
 for _, option in ipairs(ProgressDisableOptions) do disableAllowed[option.value] = true end
 
--- ----------------------------------------------------------------------------
--- Items
--- ----------------------------------------------------------------------------
 
 function allItems()
     local ok, items = pcall(function() return exports['qb-core']:GetShared('Items') end)
@@ -26,7 +20,6 @@ function itemExists(item)
     return type(allItems()[item]) == 'table'
 end
 
--- { label, image } for an item name, or nil when it is not in the shared items.
 function itemEntry(shared, name)
     local info = shared[name]
     if type(info) ~= 'table' then return nil end
@@ -40,9 +33,6 @@ local function byLabel(a, b)
     return a.name < b.name
 end
 
--- Items whose name or label contains the query. isAdded(name) marks the ones already picked.
--- With allowEmpty an empty query lists items from the top of the alphabet.
--- Returns { results, total }, or false and a message.
 function searchItems(query, isAdded, limit, allowEmpty)
     local text = trim(query, 64)
     if not text and not allowEmpty then return false, 'Type part of an item name or label to search.' end
@@ -62,15 +52,10 @@ function searchItems(query, isAdded, limit, allowEmpty)
     return { results = results, total = total }
 end
 
--- ----------------------------------------------------------------------------
--- Ids
--- ----------------------------------------------------------------------------
-
 function validId(id)
     return type(id) == 'string' and #id <= 48 and id:match('^[%w_]+$') ~= nil
 end
 
--- 'Iron Bar' -> 'iron_bar', with _2, _3 ... added until isTaken(id) is false.
 function makeId(label, isTaken)
     local base = label:lower():gsub('[^%w]+', '_'):gsub('^_+', ''):gsub('_+$', '')
     base = base:sub(1, 36)
@@ -84,9 +69,18 @@ function makeId(label, isTaken)
     return id
 end
 
--- ----------------------------------------------------------------------------
--- Recipes
--- ----------------------------------------------------------------------------
+function copyLabel(label, isTaken)
+    local base, number = label:match('^(.-)%-(%d+)$')
+    number = base and base ~= '' and (tonumber(number) + 1) or 2
+    if not base or base == '' then base = label end
+
+    while true do
+        local suffix = '-' .. number
+        local candidate = base:sub(1, 48 - #suffix) .. suffix
+        if not isTaken(candidate) then return candidate end
+        number = number + 1
+    end
+end
 
 function newRecipe(label)
     return {
@@ -95,13 +89,13 @@ function newRecipe(label)
         give = {},     -- { { item, amount, keep }, ... }
         anim = { dict = DefaultAnim.dict, clip = DefaultAnim.clip, flag = DefaultAnim.flag },
         progress = { time = DefaultProgress.time, label = DefaultProgress.label, disable = copyTable(DefaultProgress.disable) },
+        tag = nil, -- optional search word for the creator; players never see it
         skill = nil, -- skill, xp and level are each optional: nil is a valid value for all three
         xp = nil,
         level = nil,
     }
 end
 
--- A recipe can only be crafted once it makes something.
 function recipeComplete(recipe)
     return type(recipe.receive) == 'table' and recipe.receive.item ~= nil
 end
@@ -115,7 +109,6 @@ local function cleanDisable(value)
     return disable
 end
 
--- The materials: { { item, amount, keep }, ... }. Items already in the recipe are not checked again.
 function cleanGive(list, current)
     if type(list) ~= 'table' then return nil, 'Invalid item list.' end
 
@@ -140,7 +133,6 @@ function cleanGive(list, current)
     return clean
 end
 
--- The "Details" form of a recipe. Returns the updated copy, or nil and a message.
 function cleanRecipeDetails(input, current)
     if type(input) ~= 'table' then return nil, 'Invalid data.' end
     local recipe = copyTable(current)
@@ -148,6 +140,7 @@ function cleanRecipeDetails(input, current)
     local label = trim(input.label, 48)
     if not label then return nil, 'Enter a name for the recipe.' end
     recipe.label = label
+    recipe.tag = trim(input.tag, 32) -- optional: empty clears it
 
     if recipe.receive then
         local amount = inRange(input.amount, 1, Limits.recipeAmount, true)
@@ -164,7 +157,6 @@ function cleanRecipeDetails(input, current)
         disable = cleanDisable(progress.disable),
     }
 
-    -- No dictionary and no clip means no animation.
     local anim = type(input.anim) == 'table' and input.anim or {}
     local dict = cleanName(anim.dict, 64, patterns.anim)
     local clip = cleanName(anim.clip, 64, patterns.anim)
@@ -175,8 +167,6 @@ function cleanRecipeDetails(input, current)
     if dict and not flag then return nil, 'Animation flag must be between 0 and 65535.' end
     recipe.anim = { dict = dict or '', clip = clip or '', flag = flag or DefaultAnim.flag }
 
-    -- Skill, xp and level are all optional and independent: leave any of them empty for nil.
-    -- A level or xp only does something when a skill is set.
     local skill = cleanName(input.skill, 48, patterns.skill)
     if skill == false then return nil, 'Invalid skill.' end
     if skill then
@@ -198,7 +188,6 @@ function cleanRecipeDetails(input, current)
     return recipe
 end
 
--- A recipe row as it is stored. Never refuses: a bad part falls back to its default.
 function readRecipe(id, raw)
     local stored = decodeJson(raw, {})
     local recipe = newRecipe(trim(stored.label, 48) or id)
@@ -234,21 +223,17 @@ function readRecipe(id, raw)
         }
     end
 
+    recipe.tag = trim(stored.tag, 32)
     recipe.skill = cleanName(stored.skill, 48, patterns.skill) or nil
     recipe.xp = stored.xp ~= nil and inRange(stored.xp, 0, Limits.xp, true) or nil
     recipe.level = stored.level ~= nil and inRange(stored.level, 0, Limits.level, true) or nil
     return recipe
 end
 
--- ----------------------------------------------------------------------------
--- Stations
--- ----------------------------------------------------------------------------
-
 function newStation(label)
     return { label = label, targetLabel = 'Craft', targetIcon = 'fa-solid fa-hammer', recipes = {} }
 end
 
--- The "Settings" form of a station. Returns the updated copy of data, or nil and a message.
 function cleanStationDetails(input, current)
     if type(input) ~= 'table' then return nil, 'Invalid data.' end
     local data = copyTable(current)
@@ -261,7 +246,6 @@ function cleanStationDetails(input, current)
     return data
 end
 
--- The recipes on a station: a list of recipe ids that exist.
 function cleanStationRecipes(list)
     if type(list) ~= 'table' then return nil, 'Invalid recipe list.' end
     local clean, seen = {}, {}
@@ -276,9 +260,6 @@ function cleanStationRecipes(list)
     return clean
 end
 
--- Locations: { coords = { x, y, z, w }, object, gang, job }
--- A gang or a job locks the location to its members; an object is a prop that is spawned there
--- and targeted instead of a plain zone.
 function cleanLocations(list)
     if type(list) ~= 'table' then return nil, 'Invalid locations.' end
     local result = {}
@@ -305,7 +286,6 @@ function cleanLocations(list)
     return result
 end
 
--- A station row as it is stored. Never refuses.
 function readStation(id, row)
     local stored = decodeJson(row.data, {})
     local data = newStation(trim(stored.label, 48) or id)

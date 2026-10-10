@@ -1,16 +1,24 @@
--- The creator: everything an admin can change from the in-game UI. Every callback is admin only.
--- Sections: payload, items, recipes, stations, command.
 
 local function fail(message)
     return false, message
 end
 
--- This is the one place the admin check lives.
+local readOnly = {
+    ['qbcrafting:creator:get'] = true,
+    ['qbcrafting:creator:items:search'] = true,
+}
+
 local function adminCallback(name, handler)
     QB.callback.register(name, function(src, ...)
         if not isAdmin(src) then return fail('Admin permission required.') end
         if not DataLoaded then return fail('The crafting data is still loading. Try again in a moment.') end
-        return handler(src, ...)
+
+        local id = ...
+        local result, err = handler(src, ...)
+        if result and not readOnly[name] then
+            logAction(src, name, { id = id ~= nil and cutText(id, 100) or nil })
+        end
+        return result, err
     end)
 end
 
@@ -19,10 +27,6 @@ local function byLabel(a, b)
     if la ~= lb then return la < lb end
     return a.id < b.id
 end
-
--- ----------------------------------------------------------------------------
--- What the creator shows: every recipe and station, plus the items they mention
--- ----------------------------------------------------------------------------
 
 local function payload()
     local shared, items = allItems(), {}
@@ -37,7 +41,7 @@ local function payload()
         recipes[#recipes + 1] = {
             id = id, label = recipe.label, receive = recipe.receive, give = recipe.give,
             anim = recipe.anim, progress = recipe.progress,
-            skill = recipe.skill, xp = recipe.xp, level = recipe.level,
+            tag = recipe.tag, skill = recipe.skill, xp = recipe.xp, level = recipe.level,
         }
     end
     table.sort(recipes, byLabel)
@@ -66,30 +70,16 @@ adminCallback('qbcrafting:creator:get', function()
     return payload()
 end)
 
--- ----------------------------------------------------------------------------
--- Items. mode 'item' is the "what it makes" grid (an empty search lists items),
--- mode 'give' is the search for materials.
--- ----------------------------------------------------------------------------
 
-adminCallback('qbcrafting:creator:items:search', function(_, query, mode, id)
+adminCallback('qbcrafting:creator:items:search', function(_, query, id)
     local recipe = validId(id) and Recipes[id]
     if not recipe then return fail('Unknown recipe.') end
-
-    if mode == 'item' then
-        local picked = recipe.receive and recipe.receive.item
-        return searchItems(query, function(name) return name == picked end, Limits.pickerResults, true)
-    end
 
     local inRecipe = {}
     for _, entry in ipairs(recipe.give) do inRecipe[entry.item] = true end
     return searchItems(query, function(name) return inRecipe[name] == true end, Limits.materialResults, false)
 end)
 
--- ----------------------------------------------------------------------------
--- Recipes
--- ----------------------------------------------------------------------------
-
--- Runs change(copyOfRecipe), which returns the new recipe or nil and a message. Then saves and returns the page.
 local function updateRecipe(id, change)
     local current = validId(id) and Recipes[id]
     if not current then return fail('Unknown recipe.') end
@@ -112,6 +102,27 @@ adminCallback('qbcrafting:creator:recipes:create', function(_, label)
 
     local result = payload()
     result.id = id
+    return result
+end)
+
+adminCallback('qbcrafting:creator:recipes:duplicate', function(_, id)
+    local current = validId(id) and Recipes[id]
+    if not current then return fail('Unknown recipe.') end
+
+    local copy = copyTable(current)
+    copy.label = copyLabel(current.label, function(candidate)
+        for _, recipe in pairs(Recipes) do
+            if recipe.label == candidate then return true end
+        end
+        return false
+    end)
+
+    local newId = makeId(copy.label, function(candidate) return Recipes[candidate] ~= nil end)
+    local ok, err = SaveRecipe(newId, copy)
+    if not ok then return fail(err or 'Failed to save.') end
+
+    local result = payload()
+    result.id = newId
     return result
 end)
 
@@ -145,12 +156,6 @@ adminCallback('qbcrafting:creator:recipes:delete', function(_, id)
     return payload()
 end)
 
--- ----------------------------------------------------------------------------
--- Stations
--- ----------------------------------------------------------------------------
-
--- Runs change(state) with a copy of the station as state = { data, locations }. change returns an
--- error message, or nothing when it worked. Then saves and returns the page.
 local function updateStation(id, change)
     local station = validId(id) and Stations[id]
     if not station then return fail('Unknown station.') end
@@ -174,6 +179,27 @@ adminCallback('qbcrafting:creator:stations:create', function(_, label)
 
     local result = payload()
     result.id = id
+    return result
+end)
+
+adminCallback('qbcrafting:creator:stations:duplicate', function(_, id)
+    local current = validId(id) and Stations[id]
+    if not current then return fail('Unknown station.') end
+
+    local data = copyTable(current.data)
+    data.label = copyLabel(current.data.label, function(candidate)
+        for _, station in pairs(Stations) do
+            if station.data.label == candidate then return true end
+        end
+        return false
+    end)
+
+    local newId = makeId(data.label, function(candidate) return Stations[candidate] ~= nil end)
+    local ok, err = SaveStation(newId, data, {})
+    if not ok then return fail(err or 'Failed to save.') end
+
+    local result = payload()
+    result.id = newId
     return result
 end)
 
@@ -208,7 +234,6 @@ adminCallback('qbcrafting:creator:stations:delete', function(_, id)
     return payload()
 end)
 
--- ----------------------------------------------------------------------------
 
 RegisterCommand(Config.Command, function(source)
     if not isAdmin(source) then

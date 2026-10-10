@@ -1,15 +1,15 @@
--- What happens when a player crafts. The client only shows the bar: every rule is checked here, twice:
---   begin   everything is checked and the craft starts (the progress time is remembered)
---   finish  after the bar the checks run again, the materials are taken and the item given
--- so a client that skips the bar, or the menu, gets nothing.
+local pending = {}
 
-local pending = {} -- src -> { station, key, recipe, started, duration, expires }
+local function tooFast(src, key)
+    if onCooldown(src, key) then return true end
+    startCooldown(src, key, Cooldowns[key])
+    return false
+end
 
 local function notify(src, message, kind)
     QB.notify.send(src, { title = 'Crafting', message = message, type = kind or 'error' })
 end
 
--- The station location the player is standing at, or nil and a message.
 local function resolveStation(src, stationId, key)
     local station = validId(stationId) and Stations[stationId]
     local location = station and type(key) == 'number' and station.locations[key]
@@ -24,7 +24,6 @@ local function itemLabel(shared, name)
     return info and info.label or name
 end
 
--- The recipe, when the player can craft it right now. Otherwise nil and why.
 local function craftable(src, station, recipeId)
     if not validId(recipeId) then return nil, 'Unknown recipe.' end
 
@@ -55,7 +54,6 @@ local function craftable(src, station, recipeId)
     return recipe
 end
 
--- Takes the materials that are used up. All of them or none: a failure gives back what was taken.
 local function takeItems(src, give)
     local taken = {}
     for _, entry in ipairs(give) do
@@ -70,11 +68,9 @@ local function takeItems(src, give)
     return true, taken
 end
 
--- ----------------------------------------------------------------------------
--- The menu a player sees at a station
--- ----------------------------------------------------------------------------
 
 QB.callback.register('qbcrafting:menu', function(src, stationId, key)
+    if tooFast(src, 'menu') then return false, 'Slow down.' end
     if not DataLoaded then return false, 'Crafting is still loading.' end
     local station, err = resolveStation(src, stationId, key)
     if not station then return false, err end
@@ -134,11 +130,8 @@ QB.callback.register('qbcrafting:menu', function(src, stationId, key)
     return { label = station.data.label, recipes = list }
 end)
 
--- ----------------------------------------------------------------------------
--- Crafting
--- ----------------------------------------------------------------------------
-
 QB.callback.register('qbcrafting:begin', function(src, stationId, key, recipeId)
+    if tooFast(src, 'begin') then return false, 'Slow down.' end
     if not DataLoaded then return false, 'Crafting is still loading.' end
 
     local now = GetGameTimer()
@@ -195,7 +188,6 @@ QB.callback.register('qbcrafting:finish', function(src)
     return true
 end)
 
--- The player stopped the bar.
 RegisterNetEvent('qbcrafting:server:cancel', function()
     pending[source] = nil
 end)
