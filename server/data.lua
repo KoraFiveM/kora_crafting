@@ -73,7 +73,7 @@ end
 
 CreateThread(function()
     Wait(1000)
-    while GetResourceState('qbsql') ~= 'started' do Wait(500) end
+    while GetResourceState('kora_sql') ~= 'started' do Wait(500) end
 
     pcall(QB.sql.update, 'CREATE TABLE IF NOT EXISTS `qbcrafting_recipes` (`id` varchar(48) NOT NULL, `data` longtext NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4')
     pcall(QB.sql.update, 'CREATE TABLE IF NOT EXISTS `qbcrafting_stations` (`id` varchar(48) NOT NULL, `data` longtext NOT NULL, `locations` longtext NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4')

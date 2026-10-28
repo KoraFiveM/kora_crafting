@@ -1,10 +1,10 @@
-# qbcrafting
+# kora_crafting
 
-Crafting stations and recipes, built and edited in game. The creator works like the qbdrugs creator.
+Crafting stations and recipes, built and edited in game. The creator works like the kora_drugs creator.
 
 ## Install
 
-1. `ensure qbcrafting` after `qbsql`, `qblib`, `qbcore`, `qb-inventory`, `qbtarget` and your skills resource.
+1. `ensure kora_crafting` after `kora_sql`, `kora_lib`, `kora_core`, `qb-inventory`, `kora_target` and your skills resource.
 2. The two tables are created on start. `sql/qbcrafting.sql` has the same statements if you prefer to run them yourself.
 3. Give admins the `command` ace (the same one `/drugCreator` uses), then run `/craftCreator`.
 
@@ -15,7 +15,7 @@ Crafting stations and recipes, built and edited in game. The creator works like 
 - Name, the item it makes (a grid you can search, then *Select*) and the amount made
 - Required items (search, *Add*, edit the amount, or mark an item as kept instead of used up)
 - Progress text and time, the animation (dictionary, clip, flag) and what is disabled while crafting
-- Optional skill (from `exports.qbskills:GetSkillsData()`), the level needed and the xp given
+- Optional skill (from `exports.kora_skills:GetSkillsData()`), the level needed and the xp given
 
 **Stations**: a grid of stations and a *Create new station* button. A station has:
 
@@ -34,10 +34,10 @@ result, the materials are given back.
 
 ## Things to check against your server
 
-- `Config.Skills` in `shared/config.lua`: the qbskills exports this script calls. `isLevel` checks the level,
-  `addRep` gives the xp (qbskills refuses an amount above its `Config.maxAward`), `getRep` shows the player's
+- `Config.Skills` in `shared/config.lua`: the kora_skills exports this script calls. `isLevel` checks the level,
+  `addRep` gives the xp (kora_skills refuses an amount above its `Config.maxAward`), `getRep` shows the player's
   level in the menu, and `GetSkillsData` (`{ skillName = 'Label' }`) fills the skill list in the creator.
   Without `GetSkillsData` the creator shows a text box for the skill instead of a list.
 - `playerAccess()` in `server/_functions.lua` reads a player's job and gang on the server
-  (`exports.qbcore:getPlayer(src)`). If your core is different, change that one function. Until it
+  (`exports.kora_core:getPlayer(src)`). If your core is different, change that one function. Until it
   works, job and gang locked locations stay closed and a warning is printed.

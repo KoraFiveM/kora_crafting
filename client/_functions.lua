@@ -4,7 +4,7 @@ Crafting = false -- true while a station menu is open or a craft is running
 
 function canUse(location)
     if not (location.gang or location.job) then return true end
-    local player = exports.qbcore:getPlayerData()
+    local player = exports.kora_core:getPlayerData()
     if not player then return false end
     return (location.gang ~= nil and player.gang ~= nil and player.gang.name == location.gang)
         or (location.job ~= nil and player.job ~= nil and player.job.name == location.job)
@@ -12,7 +12,7 @@ function canUse(location)
 end
 
 local function createBox(coords, options)
-    return exports.qbtarget:addBoxZone({
+    return exports.kora_target:addBoxZone({
         coords = coords,
         size = vector3(2, 2, 2),
         rotation = 0,
@@ -23,13 +23,13 @@ end
 local function createObject(object, coords, options)
     local entity = QB.entities.create(object, coords, { freeze = true, invincible = true })
     SetEntityHeading(entity, coords.w)
-    exports.qbtarget:addEntity(entity, options)
+    exports.kora_target:addEntity(entity, options)
     return entity
 end
 
 local function removeZones(ids)
     for _, id in ipairs(ids) do
-        pcall(function() exports.qbtarget:removeZone(id) end)
+        pcall(function() exports.kora_target:removeZone(id) end)
     end
 end
 

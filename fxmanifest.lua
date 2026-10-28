@@ -1,17 +1,19 @@
 fx_version 'cerulean'
 game 'gta5'
 lua54 'yes'
+-- Keep the legacy resource name resolvable for exports['qbcrafting'] callers.
+provide 'qbcrafting'
 description 'Crafting stations and recipes, built and edited in game'
 version '1.0.0'
 
-dependency 'qblib'
-dependency 'qbcore'
-dependency 'qbsql'
+dependency 'kora_lib'
+dependency 'kora_core'
+dependency 'kora_sql'
 
 shared_scripts {
-    '@qblib/init.lua',
-    '@qbcore/init.lua',
-    '@qbsql/init.lua',
+    '@kora_lib/init.lua',
+    '@kora_core/init.lua',
+    '@kora_sql/init.lua',
     'shared/constants.lua',
     'shared/config.lua',
 }

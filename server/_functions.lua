@@ -101,7 +101,7 @@ end
 local warnedPlayer = false
 
 function playerAccess(src)
-    local ok, player = pcall(function() return exports.qbcore:getPlayer(src) end)
+    local ok, player = pcall(function() return exports.kora_core:getPlayer(src) end)
     local data = ok and type(player) == 'table' and (player.PlayerData or player.playerData or player.data or player) or nil
     if type(data) ~= 'table' or (data.job == nil and data.gang == nil) then
         if not warnedPlayer then

@@ -12,7 +12,7 @@ for _, option in ipairs(ProgressDisableOptions) do disableAllowed[option.value] 
 function allItems()
     local ok, items = pcall(function() return exports['qb-core']:GetShared('Items') end)
     if ok and type(items) == 'table' then return items end
-    ok, items = pcall(function() return exports.qbcore:getShared('items') end)
+    ok, items = pcall(function() return exports.kora_core:getShared('items') end)
     return ok and type(items) == 'table' and items or {}
 end
 
@@ -23,7 +23,7 @@ end
 function itemEntry(shared, name)
     local info = shared[name]
     if type(info) ~= 'table' then return nil end
-    local image = type(info.image) == 'string' and info.image ~= '' and ('nui://qbinventory/images/' .. info.image) or nil
+    local image = type(info.image) == 'string' and info.image ~= '' and ('nui://kora_inventory/images/' .. info.image) or nil
     return { label = tostring(info.label or name), image = image }
 end
 

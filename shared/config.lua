@@ -5,7 +5,7 @@ Config.Command = 'craftCreator'
 Config.Distance = 5.0
 
 Config.Skills = {
-    resource = 'qbskills',
+    resource = 'kora_skills',
     getData = 'GetSkillsData', -- returns { skillName = 'Skill Label', ... }
     getRep = 'getRep',         -- (src, skill) -> { level, ... }
     isLevel = 'isLevel',       -- (src, skill, level) -> boolean
