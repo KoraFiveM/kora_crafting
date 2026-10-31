@@ -24,16 +24,16 @@ local function optionalText(value)
 end
 
 local function toast(message)
-    QB.notify.send({ title = 'Crafting Creator', message = message, type = 'error' })
+    Kora.notify.send({ title = 'Crafting Creator', message = message, type = 'error' })
 end
 
 local function confirmed(title, message)
-    local answer = QB.nui.openAlert({ title = title, message = message, confirmLabel = 'Delete' })
+    local answer = Kora.nui.openAlert({ title = title, message = message, confirmLabel = 'Delete' })
     return answer and answer.confirmed == true
 end
 
 local function askName(title, label)
-    local result = QB.nui.openInputDialog({
+    local result = Kora.nui.openInputDialog({
         { id = 'name', label = label, type = 'text', required = true },
     }, title, 'You can change it later.')
     if not result or result.cancelled then return nil end
@@ -488,7 +488,7 @@ end
 
 local function refresh(message)
     local navigation = buildNavigation()
-    QB.nui.updateApp(APP_ID, { navigation = navigation })
+    Kora.nui.updateApp(APP_ID, { navigation = navigation })
     return { update = { navigation = navigation }, notice = message }
 end
 
@@ -511,7 +511,7 @@ local function clearItemSearch()
 end
 
 local function change(callback, ...)
-    local result, err = QB.callback.trigger(callback, ...)
+    local result, err = Kora.callback.trigger(callback, ...)
     if not result then return nil, err end
     setData(result)
     revision = revision + 1
@@ -527,7 +527,7 @@ local function openRecipe(id, message)
 end
 
 local function askAmount(label, title, current)
-    local result = QB.nui.openInputDialog({
+    local result = Kora.nui.openInputDialog({
         { id = 'amount', label = 'Amount needed', type = 'number', min = 1, max = 1000, default = current and current.amount or 1, required = true },
         {
             id = 'keep', label = 'Used up when crafting?', type = 'select',
@@ -638,7 +638,7 @@ local function recipeAction(actionId, values)
             return refresh()
         end
 
-        local result, err = QB.callback.trigger('qbcrafting:creator:items:search', query, recipe.id)
+        local result, err = Kora.callback.trigger('qbcrafting:creator:items:search', query, recipe.id)
         if not result then return fail(err or 'The search failed.') end
         itemSearch.query, itemSearch.results = query, result.results or {}
         itemSearch.total = result.total or #itemSearch.results
@@ -796,7 +796,7 @@ local function onAction(actionId, context)
     return refresh()
 end
 
-QB.nui.registerApp({
+Kora.nui.registerApp({
     id = APP_ID,
     title = 'Crafting Creator',
     icon = 'Hammer',
@@ -810,7 +810,7 @@ QB.nui.registerApp({
 
 local function placeUntilCancelled(tool)
     while true do
-        local aimed = QB.raycast.getCoords(tool.object and { type = 'object', object = tool.object } or {})
+        local aimed = Kora.raycast.getCoords(tool.object and { type = 'object', object = tool.object } or {})
         local c = aimed and aimed.coords
         if not c then return end
 
@@ -830,7 +830,7 @@ local function placeUntilCancelled(tool)
 end
 
 local function open()
-    local result, err = QB.callback.trigger('qbcrafting:creator:get')
+    local result, err = Kora.callback.trigger('qbcrafting:creator:get')
     if not result then
         toast(err or 'Admin permission required.')
         return
@@ -840,8 +840,8 @@ local function open()
     clearItemSearch()
 
     while true do
-        QB.nui.updateApp(APP_ID, { navigation = buildNavigation() })
-        QB.nui.openApp(APP_ID, { viewId = currentView })
+        Kora.nui.updateApp(APP_ID, { navigation = buildNavigation() })
+        Kora.nui.openApp(APP_ID, { viewId = currentView })
         if not pendingTool then break end
 
         local tool = pendingTool

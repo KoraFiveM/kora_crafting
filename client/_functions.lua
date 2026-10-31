@@ -21,7 +21,7 @@ local function createBox(coords, options)
 end
 
 local function createObject(object, coords, options)
-    local entity = QB.entities.create(object, coords, { freeze = true, invincible = true })
+    local entity = Kora.entities.create(object, coords, { freeze = true, invincible = true })
     SetEntityHeading(entity, coords.w)
     exports.kora_target:addEntity(entity, options)
     return entity
@@ -40,7 +40,7 @@ local function clearStation(id)
     if built then
         removeZones(built.boxes)
         for _, object in ipairs(built.objects) do
-            pcall(function() QB.entities.remove(object) end)
+            pcall(function() Kora.entities.remove(object) end)
         end
     end
     zones[id] = nil
@@ -79,7 +79,7 @@ RegisterNetEvent('qbcrafting:client:stationReload', function(id, entry)
 end)
 
 CreateThread(function()
-    local all = QB.state.awaitGlobal('Crafting', 30000, 100)
+    local all = Kora.state.awaitGlobal('Crafting', 30000, 100)
     if not all then
         print('[qbcrafting] timed out waiting for GlobalState.Crafting')
         return

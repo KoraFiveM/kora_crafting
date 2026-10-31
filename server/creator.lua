@@ -9,7 +9,7 @@ local readOnly = {
 }
 
 local function adminCallback(name, handler)
-    QB.callback.register(name, function(src, ...)
+    Kora.callback.register(name, function(src, ...)
         if not isAdmin(src) then return fail('Admin permission required.') end
         if not DataLoaded then return fail('The crafting data is still loading. Try again in a moment.') end
 
@@ -237,8 +237,8 @@ end)
 
 RegisterCommand(Config.Command, function(source)
     if not isAdmin(source) then
-        QB.print.warn(('[qbcrafting] player %s was denied /%s: they do not have the "command" ace'):format(source, Config.Command))
-        QB.notify.send(source, { title = 'Crafting Creator', message = 'Admin permission required.', type = 'error' })
+        Kora.print.warn(('[qbcrafting] player %s was denied /%s: they do not have the "command" ace'):format(source, Config.Command))
+        Kora.notify.send(source, { title = 'Crafting Creator', message = 'Admin permission required.', type = 'error' })
         return
     end
     TriggerClientEvent('qbcrafting:creator:open', source)

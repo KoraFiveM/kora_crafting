@@ -4,7 +4,7 @@ local menu = { label = 'Crafting', recipes = {} }
 local chosen = nil -- the recipe picked in the menu
 
 local function toast(message, kind)
-    QB.notify.send({ title = 'Crafting', message = message, type = kind or 'error' })
+    Kora.notify.send({ title = 'Crafting', message = message, type = kind or 'error' })
 end
 
 local function blocked(recipe)
@@ -103,7 +103,7 @@ local function buildNavigation()
     }
 end
 
-QB.nui.registerApp({
+Kora.nui.registerApp({
     id = APP_ID,
     title = 'Crafting',
     icon = 'Hammer',
@@ -124,7 +124,7 @@ QB.nui.registerApp({
 })
 
 local function runCraft(stationId, key, recipeId)
-    local started, err = QB.callback.trigger('qbcrafting:begin', stationId, key, recipeId)
+    local started, err = Kora.callback.trigger('qbcrafting:begin', stationId, key, recipeId)
     if not started then
         toast(err or 'You cannot craft that.')
         return false
@@ -135,7 +135,7 @@ local function runCraft(stationId, key, recipeId)
         anim = { dict = started.anim.dict, clip = started.anim.clip, flag = started.anim.flag, flags = started.anim.flag }
     end
 
-    local done = QB.progressbar.start({
+    local done = Kora.progressbar.start({
         label = started.label,
         duration = started.time,
         disable = started.disable or DefaultProgress.disable,
@@ -146,7 +146,7 @@ local function runCraft(stationId, key, recipeId)
         return false
     end
 
-    local ok, message = QB.callback.trigger('qbcrafting:finish')
+    local ok, message = Kora.callback.trigger('qbcrafting:finish')
     if not ok then
         toast(message or 'Crafting failed.')
         return false
@@ -160,7 +160,7 @@ function OpenCrafting(stationId, key)
 
     CreateThread(function()
         while true do
-            local result, err = QB.callback.trigger('qbcrafting:menu', stationId, key)
+            local result, err = Kora.callback.trigger('qbcrafting:menu', stationId, key)
             if not result then
                 toast(err or 'You cannot use this station.')
                 break
@@ -168,8 +168,8 @@ function OpenCrafting(stationId, key)
 
             menu = { label = result.label or 'Crafting', recipes = result.recipes or {} }
             chosen = nil
-            QB.nui.updateApp(APP_ID, { navigation = buildNavigation() })
-            QB.nui.openApp(APP_ID, { viewId = 'recipes' })
+            Kora.nui.updateApp(APP_ID, { navigation = buildNavigation() })
+            Kora.nui.openApp(APP_ID, { viewId = 'recipes' })
 
             if not chosen then break end
             runCraft(stationId, key, chosen)

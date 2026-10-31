@@ -5,7 +5,7 @@ local warned = {}
 local function warnOnce(key, message)
     if warned[key] then return end
     warned[key] = true
-    QB.print.warn('[qbcrafting] ' .. message)
+    Kora.print.warn('[qbcrafting] ' .. message)
 end
 
 local function callSkills(name, ...)

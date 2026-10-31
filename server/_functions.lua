@@ -71,7 +71,7 @@ function isNear(src, coords, radius)
     if type(coords) ~= 'table' then return false end
     local x, y, z = tonumber(coords.x), tonumber(coords.y), tonumber(coords.z)
     if not (x and y and z) then return false end
-    return QB.distance.player(src, vec3(x, y, z), radius or Config.Distance)
+    return Kora.distance.player(src, vec3(x, y, z), radius or Config.Distance)
 end
 
 
@@ -85,7 +85,7 @@ end
 function logAction(src, action, details)
     pcall(function()
         src = tonumber(src) or 0
-        QB.sql.update(
+        Kora.sql.update(
             'INSERT INTO `qbcrafting_logs` (`source`, `name`, `identifier`, `action`, `details`) VALUES (?, ?, ?, ?, ?)',
             {
                 src,
@@ -106,7 +106,7 @@ function playerAccess(src)
     if type(data) ~= 'table' or (data.job == nil and data.gang == nil) then
         if not warnedPlayer then
             warnedPlayer = true
-            QB.print.warn('[qbcrafting] could not read a player\'s job and gang, so job/gang locked locations stay closed. Fix playerAccess() in server/_functions.lua.')
+            Kora.print.warn('[qbcrafting] could not read a player\'s job and gang, so job/gang locked locations stay closed. Fix playerAccess() in server/_functions.lua.')
         end
         return nil
     end
@@ -125,34 +125,34 @@ function locationAllowed(src, location)
 end
 
 local function exists(tableName, id)
-    local rows = QB.sql.query(('SELECT `id` FROM `%s` WHERE `id` = ? LIMIT 1'):format(tableName), { id })
+    local rows = Kora.sql.query(('SELECT `id` FROM `%s` WHERE `id` = ? LIMIT 1'):format(tableName), { id })
     return rows and rows[1] ~= nil
 end
 
 function dbSaveRecipe(id, data)
     if exists('qbcrafting_recipes', id) then
-        return QB.sql.update('UPDATE `qbcrafting_recipes` SET `data` = ? WHERE `id` = ?', { json.encode(data), id })
+        return Kora.sql.update('UPDATE `qbcrafting_recipes` SET `data` = ? WHERE `id` = ?', { json.encode(data), id })
     end
-    return QB.sql.update('INSERT INTO `qbcrafting_recipes` (`id`, `data`) VALUES (?, ?)', { id, json.encode(data) })
+    return Kora.sql.update('INSERT INTO `qbcrafting_recipes` (`id`, `data`) VALUES (?, ?)', { id, json.encode(data) })
 end
 
 function dbSaveStation(id, data, locations)
     if exists('qbcrafting_stations', id) then
-        return QB.sql.update(
+        return Kora.sql.update(
             'UPDATE `qbcrafting_stations` SET `data` = ?, `locations` = ? WHERE `id` = ?',
             { json.encode(data), json.encode(locations), id }
         )
     end
-    return QB.sql.update(
+    return Kora.sql.update(
         'INSERT INTO `qbcrafting_stations` (`id`, `data`, `locations`) VALUES (?, ?, ?)',
         { id, json.encode(data), json.encode(locations) }
     )
 end
 
 function dbDeleteRecipe(id)
-    return QB.sql.update('DELETE FROM `qbcrafting_recipes` WHERE `id` = ?', { id })
+    return Kora.sql.update('DELETE FROM `qbcrafting_recipes` WHERE `id` = ?', { id })
 end
 
 function dbDeleteStation(id)
-    return QB.sql.update('DELETE FROM `qbcrafting_stations` WHERE `id` = ?', { id })
+    return Kora.sql.update('DELETE FROM `qbcrafting_stations` WHERE `id` = ?', { id })
 end

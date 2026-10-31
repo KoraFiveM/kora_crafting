@@ -7,7 +7,7 @@ local function tooFast(src, key)
 end
 
 local function notify(src, message, kind)
-    QB.notify.send(src, { title = 'Crafting', message = message, type = kind or 'error' })
+    Kora.notify.send(src, { title = 'Crafting', message = message, type = kind or 'error' })
 end
 
 local function resolveStation(src, stationId, key)
@@ -69,7 +69,7 @@ local function takeItems(src, give)
 end
 
 
-QB.callback.register('qbcrafting:menu', function(src, stationId, key)
+Kora.callback.register('qbcrafting:menu', function(src, stationId, key)
     if tooFast(src, 'menu') then return false, 'Slow down.' end
     if not DataLoaded then return false, 'Crafting is still loading.' end
     local station, err = resolveStation(src, stationId, key)
@@ -130,7 +130,7 @@ QB.callback.register('qbcrafting:menu', function(src, stationId, key)
     return { label = station.data.label, recipes = list }
 end)
 
-QB.callback.register('qbcrafting:begin', function(src, stationId, key, recipeId)
+Kora.callback.register('qbcrafting:begin', function(src, stationId, key, recipeId)
     if tooFast(src, 'begin') then return false, 'Slow down.' end
     if not DataLoaded then return false, 'Crafting is still loading.' end
 
@@ -158,7 +158,7 @@ QB.callback.register('qbcrafting:begin', function(src, stationId, key, recipeId)
     }
 end)
 
-QB.callback.register('qbcrafting:finish', function(src)
+Kora.callback.register('qbcrafting:finish', function(src)
     local job = pending[src]
     pending[src] = nil
     if not job then return false, 'Nothing is being crafted.' end
@@ -166,7 +166,7 @@ QB.callback.register('qbcrafting:finish', function(src)
     local now = GetGameTimer()
     if now > job.expires then return false, 'That took too long. Try again.' end
     if now - job.started < job.duration - 1000 then
-        QB.print.warn(('[qbcrafting] player %s finished %s in %dms (it takes %dms)'):format(src, job.recipe, now - job.started, job.duration))
+        Kora.print.warn(('[qbcrafting] player %s finished %s in %dms (it takes %dms)'):format(src, job.recipe, now - job.started, job.duration))
         return false, 'You finished too quickly.'
     end
 

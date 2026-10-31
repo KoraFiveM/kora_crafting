@@ -75,9 +75,9 @@ CreateThread(function()
     Wait(1000)
     while GetResourceState('kora_sql') ~= 'started' do Wait(500) end
 
-    pcall(QB.sql.update, 'CREATE TABLE IF NOT EXISTS `qbcrafting_recipes` (`id` varchar(48) NOT NULL, `data` longtext NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4')
-    pcall(QB.sql.update, 'CREATE TABLE IF NOT EXISTS `qbcrafting_stations` (`id` varchar(48) NOT NULL, `data` longtext NOT NULL, `locations` longtext NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4')
-    pcall(QB.sql.update, [[CREATE TABLE IF NOT EXISTS `qbcrafting_logs` (
+    pcall(Kora.sql.update, 'CREATE TABLE IF NOT EXISTS `qbcrafting_recipes` (`id` varchar(48) NOT NULL, `data` longtext NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4')
+    pcall(Kora.sql.update, 'CREATE TABLE IF NOT EXISTS `qbcrafting_stations` (`id` varchar(48) NOT NULL, `data` longtext NOT NULL, `locations` longtext NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4')
+    pcall(Kora.sql.update, [[CREATE TABLE IF NOT EXISTS `qbcrafting_logs` (
           `id` int(11) NOT NULL AUTO_INCREMENT,
           `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
           `source` int(11) NOT NULL,
@@ -88,14 +88,14 @@ CreateThread(function()
           PRIMARY KEY (`id`),
           KEY `created_at` (`created_at`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;]])
-    local recipesOk, recipeRows = pcall(QB.sql.query, 'SELECT * FROM `qbcrafting_recipes`')
-    local stationsOk, stationRows = pcall(QB.sql.query, 'SELECT * FROM `qbcrafting_stations`')
-    local logsOk, logRows = pcall(QB.sql.query, 'SELECT * FROM `qbcrafting_logs`')
+    local recipesOk, recipeRows = pcall(Kora.sql.query, 'SELECT * FROM `qbcrafting_recipes`')
+    local stationsOk, stationRows = pcall(Kora.sql.query, 'SELECT * FROM `qbcrafting_stations`')
+    local logsOk, logRows = pcall(Kora.sql.query, 'SELECT * FROM `qbcrafting_logs`')
     if not (recipesOk and stationsOk and logsOk) then
-        QB.print.warn(('[qbcrafting] could not read the database: %s'):format(tostring(recipesOk and stationsOk and logsOk and logRows or recipeRows)))
+        Kora.print.warn(('[qbcrafting] could not read the database: %s'):format(tostring(recipesOk and stationsOk and logsOk and logRows or recipeRows)))
         return
     end
-    pcall(QB.sql.update, 'DELETE FROM `qbcrafting_logs` WHERE `created_at` < (NOW() - INTERVAL ? DAY)', { LogKeepDays })
+    pcall(Kora.sql.update, 'DELETE FROM `qbcrafting_logs` WHERE `created_at` < (NOW() - INTERVAL ? DAY)', { LogKeepDays })
     for _, row in ipairs(recipeRows or {}) do
         if validId(row.id) then Recipes[row.id] = readRecipe(row.id, row.data) end
     end
