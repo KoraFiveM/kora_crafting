@@ -68,7 +68,6 @@ local function takeItems(src, give)
     return true, taken
 end
 
-
 Kora.callback.register('qbcrafting:menu', function(src, stationId, key)
     if tooFast(src, 'menu') then return false, 'Slow down.' end
     if not DataLoaded then return false, 'Crafting is still loading.' end

@@ -1,7 +1,7 @@
 
 local APP_ID = 'qbcrafting:creator'
 
-local data = { recipes = {}, stations = {}, items = {}, skills = {}, skillsAvailable = false }
+local data = { recipes = {}, stations = {}, items = {}, skills = {} }
 local selectedRecipe, selectedStation = nil, nil -- ids
 local currentView = 'recipes'
 local stationRecipeQuery = '' -- the search box above the recipes you can add to a station
@@ -93,7 +93,6 @@ end
 local function blockId(name, id)
     return ('%s:%s:%d'):format(name, id, revision)
 end
-
 
 local function makesText(recipe)
     if not recipe.receive then return 'Makes nothing yet' end
@@ -380,10 +379,11 @@ local function stationView()
         local recipe = recipeEntry(id)
         if recipe then
             taken[id] = true
+            local tags = tagMetadata(recipe)
             onStation[#onStation + 1] = {
                 id = id, label = recipe.label, description = makesText(recipe),
                 image = recipe.receive and itemImage(recipe.receive.item) or nil,
-                metadata = #tagMetadata(recipe) > 0 and tagMetadata(recipe) or nil,
+                metadata = #tags > 0 and tags or nil,
                 actions = { { id = 'station:remove:' .. id, label = 'Remove', icon = 'Trash2', variant = 'destructive' } },
             }
         end
@@ -501,7 +501,6 @@ local function setData(result)
     data.stations = result.stations or {}
     data.items = result.items or {}
     data.skills = result.skills or {}
-    data.skillsAvailable = result.skillsAvailable == true
     if selectedRecipe and not recipeEntry(selectedRecipe) then selectedRecipe = nil end
     if selectedStation and not stationEntry(selectedStation) then selectedStation = nil end
 end
@@ -561,7 +560,7 @@ local function saveGive(recipe, give, message)
     return refresh(notice(message))
 end
 
-local function detailsInput(values, recipe)
+local function detailsInput(values)
     local disable = {}
     for _, key in ipairs(type(values.disable) == 'table' and values.disable or {}) do disable[#disable + 1] = key end
 
@@ -600,7 +599,7 @@ local function recipeAction(actionId, values)
     if not recipe then return fail('Pick a recipe first.') end
 
     if actionId == 'recipe:details' then
-        local input = detailsInput(values, recipe)
+        local input = detailsInput(values)
         if input.anim.dict ~= '' and not DoesAnimDictExist(input.anim.dict) then return fail('Unknown animation dictionary.') end
 
         local result, err = change('qbcrafting:creator:recipes:details', recipe.id, input)
@@ -787,7 +786,6 @@ local function stationAction(actionId, values)
 
     return refresh()
 end
-
 
 local function onAction(actionId, context)
     local values = context and context.value or {}
