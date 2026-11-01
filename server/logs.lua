@@ -12,7 +12,6 @@ local function formatRow(row)
 end
 
 RegisterCommand('craftLogs', function(source, args)
-
     if source ~= 0 then Kora.print.debug('[qbcrafting] This command can only be run from the server console.') return end
 
     local ok, rows = pcall(Kora.sql.query,

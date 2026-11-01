@@ -74,7 +74,6 @@ function isNear(src, coords, radius)
     return Kora.distance.player(src, vec3(x, y, z), radius or Config.Distance)
 end
 
-
 local logLimits = { name = 64, identifier = 64, action = 64, details = 16000 }
 
 local function license(src)

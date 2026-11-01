@@ -70,7 +70,6 @@ adminCallback('qbcrafting:creator:get', function()
     return payload()
 end)
 
-
 adminCallback('qbcrafting:creator:items:search', function(_, query, id)
     local recipe = validId(id) and Recipes[id]
     if not recipe then return fail('Unknown recipe.') end
@@ -233,7 +232,6 @@ adminCallback('qbcrafting:creator:stations:delete', function(_, id)
     if not ok then return fail(err or 'Failed to delete the station.') end
     return payload()
 end)
-
 
 RegisterCommand(Config.Command, function(source)
     if not isAdmin(source) then

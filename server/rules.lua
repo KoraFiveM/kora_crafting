@@ -8,12 +8,11 @@ local patterns = {
 local disableAllowed = {}
 for _, option in ipairs(ProgressDisableOptions) do disableAllowed[option.value] = true end
 
-
 function allItems()
     local ok, items = pcall(function() return exports['qb-core']:GetShared('Items') end)
     if ok and type(items) == 'table' then return items end
-    ok, items = pcall(function() return exports.kora_core:getShared('items') end)
-    return ok and type(items) == 'table' and items or {}
+    items = exports.kora_core:getShared('items')
+    return type(items) == 'table' and items or {}
 end
 
 function itemExists(item)
