@@ -73,21 +73,20 @@ end
 
 CreateThread(function()
     Wait(1000)
-    while GetResourceState('kora_sql') ~= 'started' do Wait(500) end
-
-    pcall(Kora.sql.update, 'CREATE TABLE IF NOT EXISTS `qbcrafting_recipes` (`id` varchar(48) NOT NULL, `data` longtext NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4')
-    pcall(Kora.sql.update, 'CREATE TABLE IF NOT EXISTS `qbcrafting_stations` (`id` varchar(48) NOT NULL, `data` longtext NOT NULL, `locations` longtext NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4')
-    pcall(Kora.sql.update, [[CREATE TABLE IF NOT EXISTS `qbcrafting_logs` (
-          `id` int(11) NOT NULL AUTO_INCREMENT,
-          `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          `source` int(11) NOT NULL,
-          `name` varchar(64) NOT NULL,
-          `identifier` varchar(64) NOT NULL,
-          `action` varchar(64) NOT NULL,
-          `details` text NOT NULL,
-          PRIMARY KEY (`id`),
-          KEY `created_at` (`created_at`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;]])
+    if not Kora.sql.ready(60000) then
+        Kora.print.warn('[qbcrafting] kora_sql was unavailable; crafting data is not loaded until restart.')
+        return
+    end
+    local reports, schemaErr = Kora.sql.ensureTables(QBCraftingSchema)
+    if schemaErr then
+        Kora.print.warn(('[qbcrafting] schema failed: %s'):format(tostring(schemaErr)))
+        return
+    end
+    for _, report in ipairs(reports or {}) do
+        for _, warning in ipairs(report.warnings or {}) do
+            Kora.print.warn(('[qbcrafting] %s: %s'):format(tostring(report.table), tostring(warning)))
+        end
+    end
     local recipesOk, recipeRows = pcall(Kora.sql.query, 'SELECT * FROM `qbcrafting_recipes`')
     local stationsOk, stationRows = pcall(Kora.sql.query, 'SELECT * FROM `qbcrafting_stations`')
     local logsOk, logRows = pcall(Kora.sql.query, 'SELECT * FROM `qbcrafting_logs`')
