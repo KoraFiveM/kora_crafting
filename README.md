@@ -5,7 +5,7 @@ Crafting stations and recipes, built and edited in game. The creator works like 
 ## Install
 
 1. `ensure kora_crafting` after `kora_sql`, `kora_lib`, `kora_core`, `qb-inventory`, `kora_target` and your skills resource.
-2. The three tables (`qbcrafting_recipes`, `qbcrafting_stations`, `qbcrafting_logs`) are created and kept up to date automatically on start by kora_sql; there is no SQL file to import.
+2. The three tables (`kora_crafting_recipes`, `kora_crafting_stations`, `kora_crafting_logs`) are created and kept up to date automatically on start by kora_sql; there is no SQL file to import.
 3. Give admins the `command` ace (the same one `/drugCreator` uses), then run `/craftCreator`.
 
 ## Creator

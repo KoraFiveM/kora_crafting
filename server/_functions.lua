@@ -85,7 +85,7 @@ function logAction(src, action, details)
     pcall(function()
         src = tonumber(src) or 0
         Kora.sql.update(
-            'INSERT INTO `qbcrafting_logs` (`source`, `name`, `identifier`, `action`, `details`) VALUES (?, ?, ?, ?, ?)',
+            'INSERT INTO `kora_crafting_logs` (`source`, `name`, `identifier`, `action`, `details`) VALUES (?, ?, ?, ?, ?)',
             {
                 src,
                 cutText(GetPlayerName(src) or 'unknown', logLimits.name),
@@ -129,29 +129,29 @@ local function exists(tableName, id)
 end
 
 function dbSaveRecipe(id, data)
-    if exists('qbcrafting_recipes', id) then
-        return Kora.sql.update('UPDATE `qbcrafting_recipes` SET `data` = ? WHERE `id` = ?', { json.encode(data), id })
+    if exists('kora_crafting_recipes', id) then
+        return Kora.sql.update('UPDATE `kora_crafting_recipes` SET `data` = ? WHERE `id` = ?', { json.encode(data), id })
     end
-    return Kora.sql.update('INSERT INTO `qbcrafting_recipes` (`id`, `data`) VALUES (?, ?)', { id, json.encode(data) })
+    return Kora.sql.update('INSERT INTO `kora_crafting_recipes` (`id`, `data`) VALUES (?, ?)', { id, json.encode(data) })
 end
 
 function dbSaveStation(id, data, locations)
-    if exists('qbcrafting_stations', id) then
+    if exists('kora_crafting_stations', id) then
         return Kora.sql.update(
-            'UPDATE `qbcrafting_stations` SET `data` = ?, `locations` = ? WHERE `id` = ?',
+            'UPDATE `kora_crafting_stations` SET `data` = ?, `locations` = ? WHERE `id` = ?',
             { json.encode(data), json.encode(locations), id }
         )
     end
     return Kora.sql.update(
-        'INSERT INTO `qbcrafting_stations` (`id`, `data`, `locations`) VALUES (?, ?, ?)',
+        'INSERT INTO `kora_crafting_stations` (`id`, `data`, `locations`) VALUES (?, ?, ?)',
         { id, json.encode(data), json.encode(locations) }
     )
 end
 
 function dbDeleteRecipe(id)
-    return Kora.sql.update('DELETE FROM `qbcrafting_recipes` WHERE `id` = ?', { id })
+    return Kora.sql.update('DELETE FROM `kora_crafting_recipes` WHERE `id` = ?', { id })
 end
 
 function dbDeleteStation(id)
-    return Kora.sql.update('DELETE FROM `qbcrafting_stations` WHERE `id` = ?', { id })
+    return Kora.sql.update('DELETE FROM `kora_crafting_stations` WHERE `id` = ?', { id })
 end

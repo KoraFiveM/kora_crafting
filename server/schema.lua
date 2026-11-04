@@ -1,6 +1,6 @@
 QBCraftingSchema = {
     {
-        name = 'qbcrafting_recipes',
+        name = 'kora_crafting_recipes',
         columns = {
             { name = 'id', type = 'varchar(48)' },
             { name = 'data', type = 'longtext' },
@@ -8,7 +8,7 @@ QBCraftingSchema = {
         primary = { 'id' },
     },
     {
-        name = 'qbcrafting_stations',
+        name = 'kora_crafting_stations',
         columns = {
             { name = 'id', type = 'varchar(48)' },
             { name = 'data', type = 'longtext' },
@@ -17,7 +17,7 @@ QBCraftingSchema = {
         primary = { 'id' },
     },
     {
-        name = 'qbcrafting_logs',
+        name = 'kora_crafting_logs',
         columns = {
             { name = 'id', type = 'int', auto_increment = true },
             { name = 'created_at', type = 'timestamp', default = { raw = 'CURRENT_TIMESTAMP' } },

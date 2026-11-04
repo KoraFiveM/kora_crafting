@@ -15,7 +15,7 @@ RegisterCommand('craftLogs', function(source, args)
     if source ~= 0 then Kora.print.debug('[qbcrafting] This command can only be run from the server console.') return end
 
     local ok, rows = pcall(Kora.sql.query,
-        'SELECT `id`, CAST(`created_at` AS CHAR) AS `created_at`, `name`, `identifier`, `action`, `details` FROM `qbcrafting_logs` ORDER BY `id` DESC LIMIT ?',
+        'SELECT `id`, CAST(`created_at` AS CHAR) AS `created_at`, `name`, `identifier`, `action`, `details` FROM `kora_crafting_logs` ORDER BY `id` DESC LIMIT ?',
         { rowLimit(args[1]) }
     )
     if not ok then

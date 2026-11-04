@@ -87,14 +87,14 @@ CreateThread(function()
             Kora.print.warn(('[qbcrafting] %s: %s'):format(tostring(report.table), tostring(warning)))
         end
     end
-    local recipesOk, recipeRows = pcall(Kora.sql.query, 'SELECT * FROM `qbcrafting_recipes`')
-    local stationsOk, stationRows = pcall(Kora.sql.query, 'SELECT * FROM `qbcrafting_stations`')
-    local logsOk, logRows = pcall(Kora.sql.query, 'SELECT * FROM `qbcrafting_logs`')
+    local recipesOk, recipeRows = pcall(Kora.sql.query, 'SELECT * FROM `kora_crafting_recipes`')
+    local stationsOk, stationRows = pcall(Kora.sql.query, 'SELECT * FROM `kora_crafting_stations`')
+    local logsOk, logRows = pcall(Kora.sql.query, 'SELECT * FROM `kora_crafting_logs`')
     if not (recipesOk and stationsOk and logsOk) then
         Kora.print.warn(('[qbcrafting] could not read the database: %s'):format(tostring(recipesOk and stationsOk and logsOk and logRows or recipeRows)))
         return
     end
-    pcall(Kora.sql.update, 'DELETE FROM `qbcrafting_logs` WHERE `created_at` < (NOW() - INTERVAL ? DAY)', { LogKeepDays })
+    pcall(Kora.sql.update, 'DELETE FROM `kora_crafting_logs` WHERE `created_at` < (NOW() - INTERVAL ? DAY)', { LogKeepDays })
     for _, row in ipairs(recipeRows or {}) do
         if validId(row.id) then Recipes[row.id] = readRecipe(row.id, row.data) end
     end

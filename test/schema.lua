@@ -4,7 +4,7 @@ dofile('server/schema.lua')
 
 local declared = {}
 for _, spec in ipairs(QBCraftingSchema) do declared[spec.name] = spec end
-for _, name in ipairs({ 'qbcrafting_recipes', 'qbcrafting_stations', 'qbcrafting_logs' }) do
+for _, name in ipairs({ 'kora_crafting_recipes', 'kora_crafting_stations', 'kora_crafting_logs' }) do
     assert(declared[name], name .. ' is declared')
     assert(declared[name].primary[1] == 'id', name .. ' keeps its id primary key')
 end
