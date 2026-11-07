@@ -132,7 +132,7 @@ local function runCraft(stationId, key, recipeId)
 
     local anim
     if started.anim then
-        anim = { dict = started.anim.dict, clip = started.anim.clip, flag = started.anim.flag, flags = started.anim.flag }
+        anim = { dict = started.anim.dict, clip = started.anim.clip, flag = started.anim.flag }
     end
 
     local done = Kora.progressbar.start({
