@@ -35,3 +35,6 @@ server_scripts {
     'server/craft.lua',
     'server/logs.lua',
 }
+
+-- kora_qa: Gherkin test scenarios (converted legacy tests), see [kora]/kora_qa/README.md
+qa_feature 'tests/*.feature'
