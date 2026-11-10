@@ -1,4 +1,8 @@
 local pending = {}
+-- A station reopens its menu straight after each craft (client/craft.lua
+-- OpenCrafting loop). A recipe may be shorter than Cooldowns.menu, so one
+-- finished craft earns one menu request that skips the menu cooldown.
+local reopenAllowed = {}
 
 local function tooFast(src, key)
     if onCooldown(src, key) then return true end
@@ -69,7 +73,11 @@ local function takeItems(src, give)
 end
 
 Kora.callback.register('kora_crafting:menu', function(src, stationId, key)
-    if tooFast(src, 'menu') then return false, 'Slow down.' end
+    if reopenAllowed[src] then
+        reopenAllowed[src] = nil
+    elseif tooFast(src, 'menu') then
+        return false, 'Slow down.'
+    end
     if not DataLoaded then return false, 'Crafting is still loading.' end
     local station, err = resolveStation(src, stationId, key)
     if not station then return false, err end
@@ -161,6 +169,7 @@ Kora.callback.register('kora_crafting:finish', function(src)
     local job = pending[src]
     pending[src] = nil
     if not job then return false, 'Nothing is being crafted.' end
+    reopenAllowed[src] = true
 
     local now = GetGameTimer()
     if now > job.expires then return false, 'That took too long. Try again.' end
@@ -188,9 +197,11 @@ Kora.callback.register('kora_crafting:finish', function(src)
 end)
 
 RegisterNetEvent('kora_crafting:server:cancel', function()
+    if pending[source] then reopenAllowed[source] = true end
     pending[source] = nil
 end)
 
 AddEventHandler('playerDropped', function()
     pending[source] = nil
+    reopenAllowed[source] = nil
 end)
