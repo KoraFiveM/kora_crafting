@@ -74,14 +74,14 @@ local function buildStation(id, entry)
     end
 end
 
-RegisterNetEvent('qbcrafting:client:stationReload', function(id, entry)
+RegisterNetEvent('kora_crafting:client:stationReload', function(id, entry)
     buildStation(id, entry)
 end)
 
 CreateThread(function()
     local all = Kora.state.awaitGlobal('Crafting', 30000, 100)
     if not all then
-        Kora.print.warn('[qbcrafting] timed out waiting for GlobalState.Crafting')
+        Kora.print.warn('[kora_crafting] timed out waiting for GlobalState.Crafting')
         return
     end
     for id, entry in pairs(all.stations or {}) do buildStation(id, entry) end

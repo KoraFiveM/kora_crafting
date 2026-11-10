@@ -1,4 +1,4 @@
-QBCraftingSchema = {
+KoraCraftingSchema = {
     {
         name = 'kora_crafting_recipes',
         columns = {

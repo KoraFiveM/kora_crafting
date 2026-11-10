@@ -1,8 +1,6 @@
 fx_version 'cerulean'
 game 'gta5'
 lua54 'yes'
--- Keep the legacy resource name resolvable for exports['qbcrafting'] callers.
-provide 'qbcrafting'
 description 'Crafting stations and recipes, built and edited in game'
 version '1.0.0'
 
@@ -21,6 +19,8 @@ client_scripts {
     'client/_functions.lua',
     'client/craft.lua',
     'client/creator.lua',
+    -- Optional FFT hooks: returns immediately unless fft_kora_hooks is true.
+    'fft_hooks.lua'
 }
 
 -- Order matters here: each file uses the ones before it.

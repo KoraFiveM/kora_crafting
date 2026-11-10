@@ -12,18 +12,18 @@ local function formatRow(row)
 end
 
 RegisterCommand('craftLogs', function(source, args)
-    if source ~= 0 then Kora.print.debug('[qbcrafting] This command can only be run from the server console.') return end
+    if source ~= 0 then Kora.print.debug('[kora_crafting] This command can only be run from the server console.') return end
 
     local ok, rows = pcall(Kora.sql.query,
         'SELECT `id`, CAST(`created_at` AS CHAR) AS `created_at`, `name`, `identifier`, `action`, `details` FROM `kora_crafting_logs` ORDER BY `id` DESC LIMIT ?',
         { rowLimit(args[1]) }
     )
     if not ok then
-        Kora.print.debug('[qbcrafting] could not read the logs: ' .. tostring(rows))
+        Kora.print.debug('[kora_crafting] could not read the logs: ' .. tostring(rows))
         return
     end
     if not rows or #rows == 0 then
-        Kora.print.debug('[qbcrafting] no logs yet.')
+        Kora.print.debug('[kora_crafting] no logs yet.')
         return
     end
 

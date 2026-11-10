@@ -8,7 +8,7 @@ Feature: kora_crafting — Activities
     Checklist test: As admin with 'command' ace run /craftCreator; NUI opens with Recipes and Stations tabs. Non-admin is denied.
     """
     When I run the command "/craftCreator"
-    Then the "qbcrafting:creator" app opens
+    Then the "kora_crafting:creator" app opens
     And I confirm: the creator shows Recipes and Stations tabs
     When I manually: ask a second player without admin permission to run /craftCreator
     Then I confirm: the other player is denied access to the creator
@@ -19,7 +19,7 @@ Feature: kora_crafting — Activities
     Checklist test: In creator, Create new recipe: set name, result item and amount, required items, progress text/time, animation; save.
     """
     When I manually: run /craftCreator
-    Then the "qbcrafting:creator" app should be open
+    Then the "kora_crafting:creator" app should be open
     When I manually: open the recipes grid
     And I manually: click Create new recipe
     And I manually: set the name, result item and amount
@@ -55,7 +55,7 @@ Feature: kora_crafting — Activities
     Checklist test: Create new station: name, target label/icon, add recipes, add locations by aiming; station target appears for players immediately.
     """
     When I manually: run /craftCreator
-    Then the "qbcrafting:creator" app should be open
+    Then the "kora_crafting:creator" app should be open
     When I manually: open the stations grid
     And I manually: click Create new station
     And I manually: set the name, target label and target icon
@@ -90,7 +90,7 @@ Feature: kora_crafting — Activities
     Checklist test: Edit and delete a station and a recipe; deleting a recipe removes it from every station that had it; clients update live.
     """
     When I manually: run /craftCreator
-    Then the "qbcrafting:creator" app should be open
+    Then the "kora_crafting:creator" app should be open
     When I manually: edit a station and save
     And I manually: delete a station
     And I manually: edit a recipe that is on a station and save
@@ -104,7 +104,7 @@ Feature: kora_crafting — Activities
     Checklist test: Target a station; cards show product, needs, missing items (red), skill/level, XP, split into 'Ready' and 'Missing something'.
     """
     When I manually: target a crafting station and use it
-    Then the "qbcrafting:menu" app opens
+    Then the "kora_crafting:menu" app opens
     And I confirm: recipe cards show the product, needs, skill/level and XP
     And I confirm: missing items are shown in red
     And I confirm: recipes are split into 'Ready' and 'Missing something'
@@ -128,7 +128,7 @@ Feature: kora_crafting — Activities
     Checklist test: Open station with missing materials; recipe appears under Missing and has no Craft button.
     """
     When I manually: use a crafting station while missing materials for a recipe
-    Then the "qbcrafting:menu" app opens
+    Then the "kora_crafting:menu" app opens
     And I confirm: the recipe appears under Missing something
     And I confirm: the recipe has no Craft button
 
@@ -178,5 +178,5 @@ Feature: kora_crafting — Activities
     Checklist test: After a craft finishes, the station menu reopens with updated stock so you can craft again.
     """
     When I manually: complete a craft at a station
-    Then the "qbcrafting:menu" app opens
+    Then the "kora_crafting:menu" app opens
     And I confirm: the menu shows updated stock so I can craft again

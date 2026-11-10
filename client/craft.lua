@@ -1,5 +1,5 @@
 
-local APP_ID = 'qbcrafting:menu'
+local APP_ID = 'kora_crafting:menu'
 local menu = { label = 'Crafting', recipes = {} }
 local chosen = nil -- the recipe picked in the menu
 
@@ -124,7 +124,7 @@ Kora.nui.registerApp({
 })
 
 local function runCraft(stationId, key, recipeId)
-    local started, err = Kora.callback.trigger('qbcrafting:begin', stationId, key, recipeId)
+    local started, err = Kora.callback.trigger('kora_crafting:begin', stationId, key, recipeId)
     if not started then
         toast(err or 'You cannot craft that.')
         return false
@@ -142,11 +142,11 @@ local function runCraft(stationId, key, recipeId)
         anim = anim,
     })
     if not done then
-        TriggerServerEvent('qbcrafting:server:cancel')
+        TriggerServerEvent('kora_crafting:server:cancel')
         return false
     end
 
-    local ok, message = Kora.callback.trigger('qbcrafting:finish')
+    local ok, message = Kora.callback.trigger('kora_crafting:finish')
     if not ok then
         toast(message or 'Crafting failed.')
         return false
@@ -160,7 +160,7 @@ function OpenCrafting(stationId, key)
 
     CreateThread(function()
         while true do
-            local result, err = Kora.callback.trigger('qbcrafting:menu', stationId, key)
+            local result, err = Kora.callback.trigger('kora_crafting:menu', stationId, key)
             if not result then
                 toast(err or 'You cannot use this station.')
                 break

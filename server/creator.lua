@@ -4,8 +4,8 @@ local function fail(message)
 end
 
 local readOnly = {
-    ['qbcrafting:creator:get'] = true,
-    ['qbcrafting:creator:items:search'] = true,
+    ['kora_crafting:creator:get'] = true,
+    ['kora_crafting:creator:items:search'] = true,
 }
 
 local function adminCallback(name, handler)
@@ -66,11 +66,11 @@ local function payload()
     }
 end
 
-adminCallback('qbcrafting:creator:get', function()
+adminCallback('kora_crafting:creator:get', function()
     return payload()
 end)
 
-adminCallback('qbcrafting:creator:items:search', function(_, query, id)
+adminCallback('kora_crafting:creator:items:search', function(_, query, id)
     local recipe = validId(id) and Recipes[id]
     if not recipe then return fail('Unknown recipe.') end
 
@@ -91,7 +91,7 @@ local function updateRecipe(id, change)
     return payload()
 end
 
-adminCallback('qbcrafting:creator:recipes:create', function(_, label)
+adminCallback('kora_crafting:creator:recipes:create', function(_, label)
     label = trim(label, 48)
     if not label then return fail('Enter a name for the recipe.') end
 
@@ -104,7 +104,7 @@ adminCallback('qbcrafting:creator:recipes:create', function(_, label)
     return result
 end)
 
-adminCallback('qbcrafting:creator:recipes:duplicate', function(_, id)
+adminCallback('kora_crafting:creator:recipes:duplicate', function(_, id)
     local current = validId(id) and Recipes[id]
     if not current then return fail('Unknown recipe.') end
 
@@ -125,11 +125,11 @@ adminCallback('qbcrafting:creator:recipes:duplicate', function(_, id)
     return result
 end)
 
-adminCallback('qbcrafting:creator:recipes:details', function(_, id, input)
+adminCallback('kora_crafting:creator:recipes:details', function(_, id, input)
     return updateRecipe(id, function(recipe) return cleanRecipeDetails(input, recipe) end)
 end)
 
-adminCallback('qbcrafting:creator:recipes:item', function(_, id, item)
+adminCallback('kora_crafting:creator:recipes:item', function(_, id, item)
     local name = cleanName(item, 64, '^[%w_%-%.]+$')
     if not name or not itemExists(name) then return fail('That item does not exist.') end
 
@@ -139,7 +139,7 @@ adminCallback('qbcrafting:creator:recipes:item', function(_, id, item)
     end)
 end)
 
-adminCallback('qbcrafting:creator:recipes:give', function(_, id, give)
+adminCallback('kora_crafting:creator:recipes:give', function(_, id, give)
     return updateRecipe(id, function(recipe)
         local clean, err = cleanGive(give, recipe.give)
         if not clean then return nil, err end
@@ -148,7 +148,7 @@ adminCallback('qbcrafting:creator:recipes:give', function(_, id, give)
     end)
 end)
 
-adminCallback('qbcrafting:creator:recipes:delete', function(_, id)
+adminCallback('kora_crafting:creator:recipes:delete', function(_, id)
     if not (validId(id) and Recipes[id]) then return fail('Unknown recipe.') end
     local ok, err = DeleteRecipe(id)
     if not ok then return fail(err or 'Failed to delete the recipe.') end
@@ -168,7 +168,7 @@ local function updateStation(id, change)
     return payload()
 end
 
-adminCallback('qbcrafting:creator:stations:create', function(_, label)
+adminCallback('kora_crafting:creator:stations:create', function(_, label)
     label = trim(label, 48)
     if not label then return fail('Enter a name for the station.') end
 
@@ -181,7 +181,7 @@ adminCallback('qbcrafting:creator:stations:create', function(_, label)
     return result
 end)
 
-adminCallback('qbcrafting:creator:stations:duplicate', function(_, id)
+adminCallback('kora_crafting:creator:stations:duplicate', function(_, id)
     local current = validId(id) and Stations[id]
     if not current then return fail('Unknown station.') end
 
@@ -202,7 +202,7 @@ adminCallback('qbcrafting:creator:stations:duplicate', function(_, id)
     return result
 end)
 
-adminCallback('qbcrafting:creator:stations:details', function(_, id, input)
+adminCallback('kora_crafting:creator:stations:details', function(_, id, input)
     return updateStation(id, function(state)
         local data, err = cleanStationDetails(input, state.data)
         if not data then return err end
@@ -210,7 +210,7 @@ adminCallback('qbcrafting:creator:stations:details', function(_, id, input)
     end)
 end)
 
-adminCallback('qbcrafting:creator:stations:recipes', function(_, id, list)
+adminCallback('kora_crafting:creator:stations:recipes', function(_, id, list)
     return updateStation(id, function(state)
         local clean, err = cleanStationRecipes(list)
         if not clean then return err end
@@ -218,7 +218,7 @@ adminCallback('qbcrafting:creator:stations:recipes', function(_, id, list)
     end)
 end)
 
-adminCallback('qbcrafting:creator:stations:locations', function(_, id, list)
+adminCallback('kora_crafting:creator:stations:locations', function(_, id, list)
     return updateStation(id, function(state)
         local clean, err = cleanLocations(list)
         if not clean then return err end
@@ -226,7 +226,7 @@ adminCallback('qbcrafting:creator:stations:locations', function(_, id, list)
     end)
 end)
 
-adminCallback('qbcrafting:creator:stations:delete', function(_, id)
+adminCallback('kora_crafting:creator:stations:delete', function(_, id)
     if not (validId(id) and Stations[id]) then return fail('Unknown station.') end
     local ok, err = DeleteStation(id)
     if not ok then return fail(err or 'Failed to delete the station.') end
@@ -235,9 +235,9 @@ end)
 
 RegisterCommand(Config.Command, function(source)
     if not isAdmin(source) then
-        Kora.print.warn(('[qbcrafting] player %s was denied /%s: they do not have the "command" ace'):format(source, Config.Command))
+        Kora.print.warn(('[kora_crafting] player %s was denied /%s: they do not have the "command" ace'):format(source, Config.Command))
         Kora.notify.send(source, { title = 'Crafting Creator', message = 'Admin permission required.', type = 'error' })
         return
     end
-    TriggerClientEvent('qbcrafting:creator:open', source)
+    TriggerClientEvent('kora_crafting:creator:open', source)
 end, false)

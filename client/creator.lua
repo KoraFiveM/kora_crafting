@@ -1,5 +1,5 @@
 
-local APP_ID = 'qbcrafting:creator'
+local APP_ID = 'kora_crafting:creator'
 
 local data = { recipes = {}, stations = {}, items = {}, skills = {} }
 local selectedRecipe, selectedStation = nil, nil -- ids
@@ -550,7 +550,7 @@ local function giveCopy(recipe)
 end
 
 local function saveGive(recipe, give, message)
-    local result, err = change('qbcrafting:creator:recipes:give', recipe.id, give)
+    local result, err = change('kora_crafting:creator:recipes:give', recipe.id, give)
     if not result then return fail(err or 'Failed to save.') end
 
     local updated = recipeEntry(recipe.id)
@@ -584,7 +584,7 @@ local function recipeAction(actionId, values)
         local name = askName('New recipe', 'Recipe name')
         if not name then return refresh() end
 
-        local result, err = change('qbcrafting:creator:recipes:create', name)
+        local result, err = change('kora_crafting:creator:recipes:create', name)
         if not result then return fail(err or 'Failed to create the recipe.') end
         return openRecipe(result.id, notice('Recipe created. Pick the item it makes and add what it needs.'))
     end
@@ -602,20 +602,20 @@ local function recipeAction(actionId, values)
         local input = detailsInput(values)
         if input.anim.dict ~= '' and not DoesAnimDictExist(input.anim.dict) then return fail('Unknown animation dictionary.') end
 
-        local result, err = change('qbcrafting:creator:recipes:details', recipe.id, input)
+        local result, err = change('kora_crafting:creator:recipes:details', recipe.id, input)
         if not result then return fail(err or 'Failed to save.') end
         return refresh(notice('Saved.'))
     end
 
     local pickName = actionId:match('^recipe:pick:(.+)$')
     if pickName then
-        local result, err = change('qbcrafting:creator:recipes:item', recipe.id, pickName)
+        local result, err = change('kora_crafting:creator:recipes:item', recipe.id, pickName)
         if not result then return fail(err or 'Failed to save.') end
         return refresh(notice(('It now makes %s.'):format(itemLabel(pickName))))
     end
 
     if actionId == 'recipe:duplicate' then
-        local result, err = change('qbcrafting:creator:recipes:duplicate', recipe.id)
+        local result, err = change('kora_crafting:creator:recipes:duplicate', recipe.id)
         if not result then return fail(err or 'Failed to duplicate the recipe.') end
         return openRecipe(result.id, notice('Recipe duplicated. You are now editing the copy.'))
     end
@@ -624,7 +624,7 @@ local function recipeAction(actionId, values)
         local message = ('This removes %s, and takes it off every station that has it.'):format(recipe.label)
         if not confirmed('Delete recipe?', message) then return refresh() end
 
-        local result, err = change('qbcrafting:creator:recipes:delete', recipe.id)
+        local result, err = change('kora_crafting:creator:recipes:delete', recipe.id)
         if not result then return fail(err or 'Failed to delete the recipe.') end
         selectedRecipe, currentView = nil, 'recipes'
         return refresh(notice('Recipe deleted.'))
@@ -637,7 +637,7 @@ local function recipeAction(actionId, values)
             return refresh()
         end
 
-        local result, err = Kora.callback.trigger('qbcrafting:creator:items:search', query, recipe.id)
+        local result, err = Kora.callback.trigger('kora_crafting:creator:items:search', query, recipe.id)
         if not result then return fail(err or 'The search failed.') end
         itemSearch.query, itemSearch.results = query, result.results or {}
         itemSearch.total = result.total or #itemSearch.results
@@ -710,7 +710,7 @@ local function stationAction(actionId, values)
         local name = askName('New station', 'Station name')
         if not name then return refresh() end
 
-        local result, err = change('qbcrafting:creator:stations:create', name)
+        local result, err = change('kora_crafting:creator:stations:create', name)
         if not result then return fail(err or 'Failed to create the station.') end
         return openStation(result.id, notice('Station created. Add recipes and place its locations.'))
     end
@@ -725,7 +725,7 @@ local function stationAction(actionId, values)
     if not station then return fail('Pick a station first.') end
 
     if actionId == 'station:details' then
-        local result, err = change('qbcrafting:creator:stations:details', station.id, {
+        local result, err = change('kora_crafting:creator:stations:details', station.id, {
             label = text(values.label),
             targetLabel = text(values.targetLabel),
             targetIcon = text(values.targetIcon),
@@ -741,14 +741,14 @@ local function stationAction(actionId, values)
 
     local addId = actionId:match('^station:add:(.+)$')
     if addId then
-        local result, err = change('qbcrafting:creator:stations:recipes', station.id, stationRecipeIds(station, nil, addId))
+        local result, err = change('kora_crafting:creator:stations:recipes', station.id, stationRecipeIds(station, nil, addId))
         if not result then return fail(err or 'Failed to save.') end
         return refresh(notice('Recipe added.'))
     end
 
     local removeId = actionId:match('^station:remove:(.+)$')
     if removeId then
-        local result, err = change('qbcrafting:creator:stations:recipes', station.id, stationRecipeIds(station, removeId))
+        local result, err = change('kora_crafting:creator:stations:recipes', station.id, stationRecipeIds(station, removeId))
         if not result then return fail(err or 'Failed to save.') end
         return refresh(notice('Recipe removed.'))
     end
@@ -763,13 +763,13 @@ local function stationAction(actionId, values)
 
     local dropIndex = actionId:match('^station:dropLoc:(%d+)$')
     if dropIndex then
-        local result, err = change('qbcrafting:creator:stations:locations', station.id, removedAt(station.locations, tonumber(dropIndex)))
+        local result, err = change('kora_crafting:creator:stations:locations', station.id, removedAt(station.locations, tonumber(dropIndex)))
         if not result then return fail(err or 'Failed to save.') end
         return refresh(notice('Deleted.'))
     end
 
     if actionId == 'station:duplicate' then
-        local result, err = change('qbcrafting:creator:stations:duplicate', station.id)
+        local result, err = change('kora_crafting:creator:stations:duplicate', station.id)
         if not result then return fail(err or 'Failed to duplicate the station.') end
         return openStation(result.id, notice('Station duplicated without locations. You are now editing the copy.'))
     end
@@ -778,7 +778,7 @@ local function stationAction(actionId, values)
         local message = ('This removes %s and all of its locations.'):format(station.label)
         if not confirmed('Delete station?', message) then return refresh() end
 
-        local result, err = change('qbcrafting:creator:stations:delete', station.id)
+        local result, err = change('kora_crafting:creator:stations:delete', station.id)
         if not result then return fail(err or 'Failed to delete the station.') end
         selectedStation, currentView = nil, 'stations'
         return refresh(notice('Station deleted.'))
@@ -819,7 +819,7 @@ local function placeUntilCancelled(tool)
             coords = { x = c.x, y = c.y, z = c.z, w = c.w or aimed.heading },
             object = tool.object, gang = tool.gang, job = tool.job,
         }
-        local result, err = change('qbcrafting:creator:stations:locations', station.id, appended(station.locations, place))
+        local result, err = change('kora_crafting:creator:stations:locations', station.id, appended(station.locations, place))
         if not result then
             toast(err or 'Failed to save the location.')
             return
@@ -828,7 +828,7 @@ local function placeUntilCancelled(tool)
 end
 
 local function open()
-    local result, err = Kora.callback.trigger('qbcrafting:creator:get')
+    local result, err = Kora.callback.trigger('kora_crafting:creator:get')
     if not result then
         toast(err or 'Admin permission required.')
         return
@@ -848,7 +848,7 @@ local function open()
     end
 end
 
-RegisterNetEvent('qbcrafting:creator:open', function()
+RegisterNetEvent('kora_crafting:creator:open', function()
     if source ~= 65535 then return end
     CreateThread(open)
 end)

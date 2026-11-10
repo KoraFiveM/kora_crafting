@@ -68,7 +68,7 @@ local function takeItems(src, give)
     return true, taken
 end
 
-Kora.callback.register('qbcrafting:menu', function(src, stationId, key)
+Kora.callback.register('kora_crafting:menu', function(src, stationId, key)
     if tooFast(src, 'menu') then return false, 'Slow down.' end
     if not DataLoaded then return false, 'Crafting is still loading.' end
     local station, err = resolveStation(src, stationId, key)
@@ -129,7 +129,7 @@ Kora.callback.register('qbcrafting:menu', function(src, stationId, key)
     return { label = station.data.label, recipes = list }
 end)
 
-Kora.callback.register('qbcrafting:begin', function(src, stationId, key, recipeId)
+Kora.callback.register('kora_crafting:begin', function(src, stationId, key, recipeId)
     if tooFast(src, 'begin') then return false, 'Slow down.' end
     if not DataLoaded then return false, 'Crafting is still loading.' end
 
@@ -157,7 +157,7 @@ Kora.callback.register('qbcrafting:begin', function(src, stationId, key, recipeI
     }
 end)
 
-Kora.callback.register('qbcrafting:finish', function(src)
+Kora.callback.register('kora_crafting:finish', function(src)
     local job = pending[src]
     pending[src] = nil
     if not job then return false, 'Nothing is being crafted.' end
@@ -165,7 +165,7 @@ Kora.callback.register('qbcrafting:finish', function(src)
     local now = GetGameTimer()
     if now > job.expires then return false, 'That took too long. Try again.' end
     if now - job.started < job.duration - 1000 then
-        Kora.print.warn(('[qbcrafting] player %s finished %s in %dms (it takes %dms)'):format(src, job.recipe, now - job.started, job.duration))
+        Kora.print.warn(('[kora_crafting] player %s finished %s in %dms (it takes %dms)'):format(src, job.recipe, now - job.started, job.duration))
         return false, 'You finished too quickly.'
     end
 
@@ -187,7 +187,7 @@ Kora.callback.register('qbcrafting:finish', function(src)
     return true
 end)
 
-RegisterNetEvent('qbcrafting:server:cancel', function()
+RegisterNetEvent('kora_crafting:server:cancel', function()
     pending[source] = nil
 end)
 
