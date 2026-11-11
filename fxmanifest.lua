@@ -2,7 +2,7 @@ fx_version 'cerulean'
 game 'gta5'
 lua54 'yes'
 description 'Crafting stations and recipes, built and edited in game'
-version '1.0.0'
+version '0.1.0'
 
 dependency 'kora_lib'
 dependency 'kora_core'
