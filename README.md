@@ -41,3 +41,5 @@ result, the materials are given back.
 - `playerAccess()` in `server/_functions.lua` reads a player's job and gang on the server
   (`exports.kora_core:getPlayer(src)`). If your core is different, change that one function. Until it
   works, job and gang locked locations stay closed and a warning is printed.
+
+Full documentation: see [docs/](docs/index.md).
