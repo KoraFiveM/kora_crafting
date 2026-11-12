@@ -1,0 +1,55 @@
+{
+  "resource": "kora_crafting",
+  "standardsRevision": "2026-11-12.2",
+  "realms": {
+    "client": [
+      "client/_functions.lua",
+      "client/craft.lua",
+      "client/creator.lua",
+      "fft_hooks.lua"
+    ],
+    "server": [
+      "server/_functions.lua",
+      "server/craft.lua",
+      "server/creator.lua",
+      "server/data.lua",
+      "server/logs.lua",
+      "server/rules.lua",
+      "server/schema.lua",
+      "server/skills.lua"
+    ],
+    "shared": [
+      "shared/config.lua",
+      "shared/constants.lua"
+    ],
+    "manifest": [
+      "fxmanifest.lua"
+    ],
+    "test": [
+      "test/schema.lua"
+    ]
+  },
+  "exclude": [
+    ".git/*",
+    ".github/*",
+    ".standards/*",
+    "node_modules/*",
+    "**/node_modules/*",
+    "vendor/*",
+    "**/vendor/*",
+    "web/*",
+    "ui/*",
+    "html/*",
+    "dist/*",
+    "artifacts/*",
+    "runtime/*",
+    "txData/*",
+    "storage/*",
+    "stream/*",
+    "docs/*",
+    "__pycache__/*",
+    "modules/lookup/data/*"
+  ],
+  "project": "Kora Framework",
+  "copyright": "Copyright © 2026 Kora Framework"
+}
