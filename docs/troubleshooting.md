@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-sidebar_position: 10
+sidebar_position: 13
 ---
 
 # Troubleshooting
@@ -25,7 +25,7 @@ The data loads after `kora_sql` is ready. Look in the console for one of these:
 
 ## Skills show as unavailable
 
-Recipes that need a level show "Skills are unavailable right now". For a new recipe the creator shows a text box for the skill instead of a list (a recipe that already has a skill shows that skill as a one-item list). Both mean the exports in `Config.Skills` failed. The console shows a warning such as `the kora_skills export "isLevel" failed: ...`, printed once for each export. Check that the resource is started and that the export names match. See [Configuration](./configuration.md#configskills).
+Recipes that need a level show "Skills are unavailable right now". For a new recipe the creator shows a text box for the skill instead of a list (a recipe that already has a skill shows that skill as a one-item list). Both mean the exports in `Config.Skills` failed. The console shows a warning such as `the kora_skills export "isLevel" failed: ...`, printed once for each export. Check that the resource is started and that the export names match. See [Configuration](./configuration.md).
 
 ## XP is not given
 

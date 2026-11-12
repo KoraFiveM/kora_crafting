@@ -1,6 +1,6 @@
 ---
 title: Crafting Creator
-sidebar_position: 4
+sidebar_position: 7
 ---
 
 # Crafting Creator
@@ -89,4 +89,4 @@ The creator closes and a raycast placement tool starts. Every point you confirm 
 
 ## Logging
 
-Every successful change in the creator is written to `kora_crafting_logs` with the admin's name, license, the callback name and the id of the recipe or station. For a create call the logged id is the name you typed, because the new id is made on the server. Use [`craftLogs`](./commands.md#craftlogs) to read it.
+Every successful change in the creator is written to `kora_crafting_logs` with the admin's name, license, the callback name and the id of the recipe or station. For a create call the logged id is the name you typed, because the new id is made on the server. Use [`craftLogs`](./commands.md) to read it.
