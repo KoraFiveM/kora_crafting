@@ -60,14 +60,18 @@ Used at runtime but not declared as dependencies:
 5. In game, run `/craftCreator`. Create recipes first, then create a station, add the recipes and place its locations.
 6. If your core stores jobs and gangs in a different way, check `playerAccess()` in `server/_functions.lua`. See [Troubleshooting](./troubleshooting.md).
 
-## Pages
+## Documentation map
 
-- [Configuration](./configuration.md): `shared/config.lua` and the constants in `shared/constants.lua`
+- [Installation](./installation.md): start order, manifest, ACE, soft dependencies and start-up problems
+- [How to use](./how-to-use.md): recipes, stations, what players do and the server-side checks
 - [Commands](./commands.md): `/craftCreator` and `craftLogs`
+- [API reference](./api/index.md): module overview
+  - [Skills integration](./api/skills-integration.md): `Config.Skills` and the internal skill helpers
+- [Configuration](./configuration.md): `shared/config.lua` and the constants in `shared/constants.lua`
 - [Crafting Creator](./creator.md): building recipes and stations in game
 - [Crafting](./crafting.md): what players see and how the server checks each craft
 - [Items](./items.md): item sources, images, kept materials and inventory calls
 - [Exports](./exports.md): public exports (there are none, apart from the dev-only FFT hooks)
 - [Events and callbacks](./events.md): net events, callbacks and the state bag
 - [Database](./database.md): tables and stored JSON
-- [Troubleshooting](./troubleshooting.md)
+- [Troubleshooting](./troubleshooting.md): common problems and fixes

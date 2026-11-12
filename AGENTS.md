@@ -4,7 +4,7 @@ kora_crafting adds in-game crafting stations and recipes managed through a Kora 
 
 ## Documentation
 
-User-facing documentation lives in `docs/` (Markdown, published via the Kora Docusaurus site, kora_docs_next). Read `docs/index.md` first for an overview of features, configuration, commands, exports, events and database usage.
+User-facing documentation lives in `docs/` (Markdown, published via the Kora Docusaurus site, kora_docs_next). Read `docs/index.md` first for an overview and the documentation map. Layout: `index.md` (hub), `installation.md`, `how-to-use.md`, `commands.md` (`/craftCreator`, `craftLogs`), `api/` (`index.md` plus `skills-integration.md` for `Config.Skills`), and topic pages (`configuration`, `creator`, `crafting`, `items`, `exports`, `events`, `database`, `troubleshooting`). Update the page that matches the change.
 
 When you add, change, or remove a feature, config option, command, export, event, item, permission, or database table/column, update the matching page in `docs/` in the same change. Keep docs accurate to the code; do not document behaviour that does not exist.
 

@@ -1,6 +1,6 @@
 ---
 title: Database
-sidebar_position: 9
+sidebar_position: 12
 ---
 
 # Database
@@ -67,4 +67,4 @@ Once the tables are ready, the server deletes old log rows and loads every recip
 | `action` | `varchar(64)` | Creator callback name |
 | `details` | `text` | JSON, for example `{"id":"iron_bar"}` |
 
-Only changes made in the creator are logged. Rows older than `LogKeepDays` (30) days are deleted when the resource starts. Read the log with [`craftLogs`](./commands.md#craftlogs).
+Only changes made in the creator are logged. Rows older than `LogKeepDays` (30) days are deleted when the resource starts. Read the log with [`craftLogs`](./commands.md).
