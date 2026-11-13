@@ -2,6 +2,7 @@ fx_version 'cerulean'
 game 'gta5'
 lua54 'yes'
 description 'Crafting stations and recipes, built and edited in game'
+author 'Kora'
 version '0.2.1'
 
 dependency 'kora_lib'
@@ -14,6 +15,8 @@ shared_scripts {
     'shared/constants.lua',
     'shared/config.lua',
 }
+
+files { 'locales/*.lua' }
 
 client_scripts {
     'client/_functions.lua',

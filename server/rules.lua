@@ -34,7 +34,7 @@ end
 
 function searchItems(query, isAdded, limit, allowEmpty)
     local text = trim(query, 64)
-    if not text and not allowEmpty then return false, 'Type part of an item name or label to search.' end
+    if not text and not allowEmpty then return false, Kora.lang('error.type_item_search') end
     local needle = text and text:lower()
 
     local shared, results = allItems(), {}
@@ -109,23 +109,23 @@ local function cleanDisable(value)
 end
 
 function cleanGive(list, current)
-    if type(list) ~= 'table' then return nil, 'Invalid item list.' end
+    if type(list) ~= 'table' then return nil, Kora.lang('error.invalid_item_list') end
 
     local already = {}
     for _, entry in ipairs(current or {}) do already[entry.item] = true end
 
     local clean, seen = {}, {}
     for _, entry in ipairs(list) do
-        if #clean >= Limits.recipeItems then return nil, 'Too many items in one recipe.' end
+        if #clean >= Limits.recipeItems then return nil, Kora.lang('error.too_many_items') end
         local item = type(entry) == 'table' and cleanName(entry.item, 64, patterns.name)
-        if not item then return nil, 'Invalid item name.' end
-        if seen[item] then return nil, ('%s is in the recipe twice.'):format(item) end
+        if not item then return nil, Kora.lang('error.invalid_item_name') end
+        if seen[item] then return nil, Kora.lang('error.duplicate_item', item) end
         seen[item] = true
-        if not already[item] and not itemExists(item) then return nil, ('%s does not exist.'):format(item) end
+        if not already[item] and not itemExists(item) then return nil, Kora.lang('error.item_not_found', item) end
 
         local amount = inRange(entry.amount, 1, Limits.recipeAmount, true)
         if not amount then
-            return nil, ('The amount for %s must be between 1 and %d.'):format(item, Limits.recipeAmount)
+            return nil, Kora.lang('error.amount_range', item, Limits.recipeAmount)
         end
         clean[#clean + 1] = { item = item, amount = amount, keep = entry.keep == true or nil }
     end
@@ -133,23 +133,23 @@ function cleanGive(list, current)
 end
 
 function cleanRecipeDetails(input, current)
-    if type(input) ~= 'table' then return nil, 'Invalid data.' end
+    if type(input) ~= 'table' then return nil, Kora.lang('error.invalid_data') end
     local recipe = copyTable(current)
 
     local label = trim(input.label, 48)
-    if not label then return nil, 'Enter a name for the recipe.' end
+    if not label then return nil, Kora.lang('error.recipe_name') end
     recipe.label = label
     recipe.tag = trim(input.tag, 32) -- optional: empty clears it
 
     if recipe.receive then
         local amount = inRange(input.amount, 1, Limits.recipeAmount, true)
-        if not amount then return nil, ('The amount made must be between 1 and %d.'):format(Limits.recipeAmount) end
+        if not amount then return nil, Kora.lang('error.amount_made', Limits.recipeAmount) end
         recipe.receive.amount = amount
     end
 
     local progress = type(input.progress) == 'table' and input.progress or {}
     local time = inRange(progress.time, 500, 300000, true)
-    if not time then return nil, 'Progress time must be between 500 and 300000 ms.' end
+    if not time then return nil, Kora.lang('error.progress_range') end
     recipe.progress = {
         time = time,
         label = trim(progress.label, 64) or '',
@@ -159,28 +159,28 @@ function cleanRecipeDetails(input, current)
     local anim = type(input.anim) == 'table' and input.anim or {}
     local dict = cleanName(anim.dict, 64, patterns.anim)
     local clip = cleanName(anim.clip, 64, patterns.anim)
-    if dict == false then return nil, 'Enter a valid animation dictionary.' end
-    if clip == false then return nil, 'Enter a valid animation clip.' end
-    if (dict == nil) ~= (clip == nil) then return nil, 'An animation needs both a dictionary and a clip.' end
+    if dict == false then return nil, Kora.lang('error.invalid_anim_dict') end
+    if clip == false then return nil, Kora.lang('error.invalid_anim_clip') end
+    if (dict == nil) ~= (clip == nil) then return nil, Kora.lang('error.anim_pair') end
     local flag = inRange(anim.flag, 0, 65535, true)
-    if dict and not flag then return nil, 'Animation flag must be between 0 and 65535.' end
+    if dict and not flag then return nil, Kora.lang('error.anim_flag') end
     recipe.anim = { dict = dict or '', clip = clip or '', flag = flag or DefaultAnim.flag }
 
     local skill = cleanName(input.skill, 48, patterns.skill)
-    if skill == false then return nil, 'Invalid skill.' end
+    if skill == false then return nil, Kora.lang('error.invalid_skill') end
     if skill then
         local known = GetSkills()
-        if known and known[skill] == nil then return nil, 'That skill does not exist.' end
+        if known and known[skill] == nil then return nil, Kora.lang('error.unknown_skill') end
     end
 
     local xp, level
     if input.xp ~= nil then
         xp = inRange(input.xp, 0, Limits.xp, true)
-        if not xp then return nil, ('XP must be between 0 and %d.'):format(Limits.xp) end
+        if not xp then return nil, Kora.lang('error.xp_range', Limits.xp) end
     end
     if input.level ~= nil then
         level = inRange(input.level, 0, Limits.level, true)
-        if not level then return nil, ('The level must be between 0 and %d.'):format(Limits.level) end
+        if not level then return nil, Kora.lang('error.level_range', Limits.level) end
     end
     recipe.skill, recipe.xp, recipe.level = skill, xp, level
 
@@ -230,27 +230,27 @@ function readRecipe(id, raw)
 end
 
 function newStation(label)
-    return { label = label, targetLabel = 'Craft', targetIcon = 'fa-solid fa-hammer', recipes = {} }
+    return { label = label, targetLabel = Kora.lang('player.craft'), targetIcon = 'fa-solid fa-hammer', recipes = {} }
 end
 
 function cleanStationDetails(input, current)
-    if type(input) ~= 'table' then return nil, 'Invalid data.' end
+    if type(input) ~= 'table' then return nil, Kora.lang('error.invalid_data') end
     local data = copyTable(current)
 
     local label = trim(input.label, 48)
-    if not label then return nil, 'Enter a name for the station.' end
+    if not label then return nil, Kora.lang('error.station_name') end
     data.label = label
-    data.targetLabel = trim(input.targetLabel, 48) or 'Craft'
+    data.targetLabel = trim(input.targetLabel, 48) or Kora.lang('player.craft')
     data.targetIcon = trim(input.targetIcon, 64) or 'fa-solid fa-hammer'
     return data
 end
 
 function cleanStationRecipes(list)
-    if type(list) ~= 'table' then return nil, 'Invalid recipe list.' end
+    if type(list) ~= 'table' then return nil, Kora.lang('error.invalid_recipe_list') end
     local clean, seen = {}, {}
     for _, id in ipairs(list) do
-        if #clean >= Limits.stationRecipes then return nil, 'Too many recipes on one station.' end
-        if not (validId(id) and Recipes[id]) then return nil, 'Unknown recipe.' end
+        if #clean >= Limits.stationRecipes then return nil, Kora.lang('error.too_many_station_recipes') end
+        if not (validId(id) and Recipes[id]) then return nil, Kora.lang('error.unknown_recipe') end
         if not seen[id] then
             seen[id] = true
             clean[#clean + 1] = id
@@ -260,25 +260,25 @@ function cleanStationRecipes(list)
 end
 
 function cleanLocations(list)
-    if type(list) ~= 'table' then return nil, 'Invalid locations.' end
+    if type(list) ~= 'table' then return nil, Kora.lang('error.invalid_locations') end
     local result = {}
     for _, entry in ipairs(list) do
         if #result >= Limits.stationLocations then break end
-        if type(entry) ~= 'table' then return nil, 'Invalid location.' end
+        if type(entry) ~= 'table' then return nil, Kora.lang('error.invalid_location') end
 
         local coords = cleanVec(entry.coords)
-        if not coords then return nil, 'Every location needs coordinates.' end
+        if not coords then return nil, Kora.lang('error.location_coords') end
         if entry.coords.w ~= nil then
             coords.w = inRange(entry.coords.w, -720.0, 720.0)
-            if not coords.w then return nil, 'Invalid heading.' end
+            if not coords.w then return nil, Kora.lang('error.invalid_heading') end
         end
 
         local gang = cleanName(entry.gang, 32, patterns.gang)
-        if gang == false then return nil, 'Gang may only contain letters, numbers, _ and -.' end
+        if gang == false then return nil, Kora.lang('error.gang_chars') end
         local job = cleanName(entry.job, 32, patterns.gang)
-        if job == false then return nil, 'Job may only contain letters, numbers, _ and -.' end
+        if job == false then return nil, Kora.lang('error.job_chars') end
         local object = cleanName(entry.object, 64, patterns.name)
-        if object == false then return nil, 'Object may only contain letters, numbers, _, - and .' end
+        if object == false then return nil, Kora.lang('error.object_chars') end
 
         result[#result + 1] = { coords = coords, object = object, gang = gang, job = job }
     end

@@ -59,7 +59,7 @@ local function buildStation(id, entry)
         if c then
             local options = {
                 {
-                    label = entry.targetLabel or 'Craft',
+                    label = entry.targetLabel or Kora.lang('player.craft'),
                     icon = entry.targetIcon or 'fa-solid fa-hammer',
                     onSelect = function() OpenCrafting(id, key) end,
                     canInteract = function() return not Crafting and canUse(location) end,

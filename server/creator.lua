@@ -10,8 +10,8 @@ local readOnly = {
 
 local function adminCallback(name, handler)
     Kora.callback.register(name, function(src, ...)
-        if not isAdmin(src) then return fail('Admin permission required.') end
-        if not DataLoaded then return fail('The crafting data is still loading. Try again in a moment.') end
+        if not isAdmin(src) then return fail(Kora.lang('message.no_permission')) end
+        if not DataLoaded then return fail(Kora.lang('message.data_loading')) end
 
         local id = ...
         local result, err = handler(src, ...)
@@ -72,7 +72,7 @@ end)
 
 adminCallback('kora_crafting:creator:items:search', function(_, query, id)
     local recipe = validId(id) and Recipes[id]
-    if not recipe then return fail('Unknown recipe.') end
+    if not recipe then return fail(Kora.lang('error.unknown_recipe')) end
 
     local inRecipe = {}
     for _, entry in ipairs(recipe.give) do inRecipe[entry.item] = true end
@@ -81,23 +81,23 @@ end)
 
 local function updateRecipe(id, change)
     local current = validId(id) and Recipes[id]
-    if not current then return fail('Unknown recipe.') end
+    if not current then return fail(Kora.lang('error.unknown_recipe')) end
 
     local updated, err = change(copyTable(current))
-    if not updated then return fail(err or 'Failed to save.') end
+    if not updated then return fail(err or Kora.lang('message.failed_save')) end
 
     local ok, saveErr = SaveRecipe(id, updated)
-    if not ok then return fail(saveErr or 'Failed to save.') end
+    if not ok then return fail(saveErr or Kora.lang('message.failed_save')) end
     return payload()
 end
 
 adminCallback('kora_crafting:creator:recipes:create', function(_, label)
     label = trim(label, 48)
-    if not label then return fail('Enter a name for the recipe.') end
+    if not label then return fail(Kora.lang('error.recipe_name')) end
 
     local id = makeId(label, function(candidate) return Recipes[candidate] ~= nil end)
     local ok, err = SaveRecipe(id, newRecipe(label))
-    if not ok then return fail(err or 'Failed to save.') end
+    if not ok then return fail(err or Kora.lang('message.failed_save')) end
 
     local result = payload()
     result.id = id
@@ -106,7 +106,7 @@ end)
 
 adminCallback('kora_crafting:creator:recipes:duplicate', function(_, id)
     local current = validId(id) and Recipes[id]
-    if not current then return fail('Unknown recipe.') end
+    if not current then return fail(Kora.lang('error.unknown_recipe')) end
 
     local copy = copyTable(current)
     copy.label = copyLabel(current.label, function(candidate)
@@ -118,7 +118,7 @@ adminCallback('kora_crafting:creator:recipes:duplicate', function(_, id)
 
     local newId = makeId(copy.label, function(candidate) return Recipes[candidate] ~= nil end)
     local ok, err = SaveRecipe(newId, copy)
-    if not ok then return fail(err or 'Failed to save.') end
+    if not ok then return fail(err or Kora.lang('message.failed_save')) end
 
     local result = payload()
     result.id = newId
@@ -131,7 +131,7 @@ end)
 
 adminCallback('kora_crafting:creator:recipes:item', function(_, id, item)
     local name = cleanName(item, 64, '^[%w_%-%.]+$')
-    if not name or not itemExists(name) then return fail('That item does not exist.') end
+    if not name or not itemExists(name) then return fail(Kora.lang('error.item_missing')) end
 
     return updateRecipe(id, function(recipe)
         recipe.receive = { item = name, amount = recipe.receive and recipe.receive.amount or 1 }
@@ -149,32 +149,32 @@ adminCallback('kora_crafting:creator:recipes:give', function(_, id, give)
 end)
 
 adminCallback('kora_crafting:creator:recipes:delete', function(_, id)
-    if not (validId(id) and Recipes[id]) then return fail('Unknown recipe.') end
+    if not (validId(id) and Recipes[id]) then return fail(Kora.lang('error.unknown_recipe')) end
     local ok, err = DeleteRecipe(id)
-    if not ok then return fail(err or 'Failed to delete the recipe.') end
+    if not ok then return fail(err or Kora.lang('error.failed_delete_recipe')) end
     return payload()
 end)
 
 local function updateStation(id, change)
     local station = validId(id) and Stations[id]
-    if not station then return fail('Unknown station.') end
+    if not station then return fail(Kora.lang('error.unknown_station')) end
 
     local state = { data = copyTable(station.data), locations = copyTable(station.locations) }
     local err = change(state)
     if err then return fail(err) end
 
     local ok, saveErr = SaveStation(id, state.data, state.locations)
-    if not ok then return fail(saveErr or 'Failed to save.') end
+    if not ok then return fail(saveErr or Kora.lang('message.failed_save')) end
     return payload()
 end
 
 adminCallback('kora_crafting:creator:stations:create', function(_, label)
     label = trim(label, 48)
-    if not label then return fail('Enter a name for the station.') end
+    if not label then return fail(Kora.lang('error.station_name')) end
 
     local id = makeId(label, function(candidate) return Stations[candidate] ~= nil end)
     local ok, err = SaveStation(id, newStation(label), {})
-    if not ok then return fail(err or 'Failed to save.') end
+    if not ok then return fail(err or Kora.lang('message.failed_save')) end
 
     local result = payload()
     result.id = id
@@ -183,7 +183,7 @@ end)
 
 adminCallback('kora_crafting:creator:stations:duplicate', function(_, id)
     local current = validId(id) and Stations[id]
-    if not current then return fail('Unknown station.') end
+    if not current then return fail(Kora.lang('error.unknown_station')) end
 
     local data = copyTable(current.data)
     data.label = copyLabel(current.data.label, function(candidate)
@@ -195,7 +195,7 @@ adminCallback('kora_crafting:creator:stations:duplicate', function(_, id)
 
     local newId = makeId(data.label, function(candidate) return Stations[candidate] ~= nil end)
     local ok, err = SaveStation(newId, data, {})
-    if not ok then return fail(err or 'Failed to save.') end
+    if not ok then return fail(err or Kora.lang('message.failed_save')) end
 
     local result = payload()
     result.id = newId
@@ -227,16 +227,16 @@ adminCallback('kora_crafting:creator:stations:locations', function(_, id, list)
 end)
 
 adminCallback('kora_crafting:creator:stations:delete', function(_, id)
-    if not (validId(id) and Stations[id]) then return fail('Unknown station.') end
+    if not (validId(id) and Stations[id]) then return fail(Kora.lang('error.unknown_station')) end
     local ok, err = DeleteStation(id)
-    if not ok then return fail(err or 'Failed to delete the station.') end
+    if not ok then return fail(err or Kora.lang('error.failed_delete_station')) end
     return payload()
 end)
 
 RegisterCommand(Config.Command, function(source)
     if not isAdmin(source) then
         Kora.print.warn(('[kora_crafting] player %s was denied /%s: they do not have the "command" ace'):format(source, Config.Command))
-        Kora.notify.send(source, { title = 'Crafting Creator', message = 'Admin permission required.', type = 'error' })
+        Kora.notify.send(source, { title = Kora.lang('creator_title'), message = Kora.lang('message.no_permission'), type = 'error' })
         return
     end
     TriggerClientEvent('kora_crafting:creator:open', source)

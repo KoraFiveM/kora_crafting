@@ -1,15 +1,15 @@
 ProgressDisableOptions = {
-    { value = 'move', label = 'Movement' },
-    { value = 'combat', label = 'Combat' },
-    { value = 'car', label = 'Vehicle (car)' },
-    { value = 'vehicle', label = 'Vehicle (vehicle)' },
+    { value = 'move', label = Kora.lang('disable.movement') },
+    { value = 'combat', label = Kora.lang('disable.combat') },
+    { value = 'car', label = Kora.lang('disable.car') },
+    { value = 'vehicle', label = Kora.lang('disable.vehicle') },
 }
 
 -- What a brand new recipe starts with.
 DefaultAnim = { dict = 'mp_arresting', clip = 'a_uncuff', flag = 49 }
 DefaultProgress = {
     time = 5000,
-    label = 'Crafting...',
+    label = Kora.lang('progress.default'),
     disable = { move = true, combat = true, car = true },
 }
 

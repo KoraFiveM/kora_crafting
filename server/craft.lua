@@ -11,15 +11,15 @@ local function tooFast(src, key)
 end
 
 local function notify(src, message, kind)
-    Kora.notify.send(src, { title = 'Crafting', message = message, type = kind or 'error' })
+    Kora.notify.send(src, { title = Kora.lang('title'), message = message, type = kind or 'error' })
 end
 
 local function resolveStation(src, stationId, key)
     local station = validId(stationId) and Stations[stationId]
     local location = station and type(key) == 'number' and station.locations[key]
-    if not location then return nil, 'This station is not available.' end
-    if not isNear(src, location.coords) then return nil, 'You are too far away.' end
-    if not locationAllowed(src, location) then return nil, 'You cannot use this station.' end
+    if not location then return nil, Kora.lang('error.station_unavailable') end
+    if not isNear(src, location.coords) then return nil, Kora.lang('error.too_far') end
+    if not locationAllowed(src, location) then return nil, Kora.lang('error.cannot_use_station') end
     return station, location
 end
 
@@ -29,22 +29,22 @@ local function itemLabel(shared, name)
 end
 
 local function craftable(src, station, recipeId)
-    if not validId(recipeId) then return nil, 'Unknown recipe.' end
+    if not validId(recipeId) then return nil, Kora.lang('error.unknown_recipe') end
 
     local onStation = false
     for _, id in ipairs(station.data.recipes) do
         if id == recipeId then onStation = true break end
     end
     local recipe = Recipes[recipeId]
-    if not (onStation and recipe and recipeComplete(recipe)) then return nil, 'That recipe is not available here.' end
+    if not (onStation and recipe and recipeComplete(recipe)) then return nil, Kora.lang('error.recipe_unavailable') end
 
     local shared = allItems()
-    if type(shared[recipe.receive.item]) ~= 'table' then return nil, 'That recipe makes an item that does not exist.' end
+    if type(shared[recipe.receive.item]) ~= 'table' then return nil, Kora.lang('error.result_item_missing') end
 
     if recipe.skill and (recipe.level or 0) > 0 then
         local has = HasSkillLevel(src, recipe.skill, recipe.level)
-        if has == nil then return nil, 'Skills are unavailable right now.' end
-        if not has then return nil, ('You need level %d.'):format(recipe.level) end
+        if has == nil then return nil, Kora.lang('error.skills_unavailable') end
+        if not has then return nil, Kora.lang('error.need_level', recipe.level) end
     end
 
     local missing = {}
@@ -53,7 +53,7 @@ local function craftable(src, station, recipeId)
             missing[#missing + 1] = ('%dx %s'):format(entry.amount, itemLabel(shared, entry.item))
         end
     end
-    if #missing > 0 then return nil, 'You need ' .. table.concat(missing, ', ') .. '.' end
+    if #missing > 0 then return nil, Kora.lang('error.need_items', table.concat(missing, ', ')) end
 
     return recipe
 end
@@ -76,9 +76,9 @@ Kora.callback.register('kora_crafting:menu', function(src, stationId, key)
     if reopenAllowed[src] then
         reopenAllowed[src] = nil
     elseif tooFast(src, 'menu') then
-        return false, 'Slow down.'
+        return false, Kora.lang('error.slow_down')
     end
-    if not DataLoaded then return false, 'Crafting is still loading.' end
+    if not DataLoaded then return false, Kora.lang('error.loading') end
     local station, err = resolveStation(src, stationId, key)
     if not station then return false, err end
 
@@ -123,9 +123,9 @@ Kora.callback.register('kora_crafting:menu', function(src, stationId, key)
                     if levels[recipe.skill] == nil then levels[recipe.skill] = SkillLevel(src, recipe.skill) or false end
                     local level = levels[recipe.skill]
                     if not level then
-                        entry.locked = 'Skills are unavailable right now'
+                    entry.locked = Kora.lang('error.skills_unavailable')
                     elseif level < recipe.level then
-                        entry.locked = ('Needs %s level %d (you are level %d)'):format(entry.skill, recipe.level, level)
+                        entry.locked = Kora.lang('error.skill_level', entry.skill, recipe.level, level)
                     end
                 end
             end
@@ -138,11 +138,11 @@ Kora.callback.register('kora_crafting:menu', function(src, stationId, key)
 end)
 
 Kora.callback.register('kora_crafting:begin', function(src, stationId, key, recipeId)
-    if tooFast(src, 'begin') then return false, 'Slow down.' end
-    if not DataLoaded then return false, 'Crafting is still loading.' end
+    if tooFast(src, 'begin') then return false, Kora.lang('error.slow_down') end
+    if not DataLoaded then return false, Kora.lang('error.loading') end
 
     local now = GetGameTimer()
-    if pending[src] and now < pending[src].expires then return false, 'You are already crafting.' end
+    if pending[src] and now < pending[src].expires then return false, Kora.lang('error.already_crafting') end
 
     local station, err = resolveStation(src, stationId, key)
     if not station then return false, err end
@@ -168,14 +168,14 @@ end)
 Kora.callback.register('kora_crafting:finish', function(src)
     local job = pending[src]
     pending[src] = nil
-    if not job then return false, 'Nothing is being crafted.' end
+    if not job then return false, Kora.lang('error.nothing_crafting') end
     reopenAllowed[src] = true
 
     local now = GetGameTimer()
-    if now > job.expires then return false, 'That took too long. Try again.' end
+    if now > job.expires then return false, Kora.lang('error.took_too_long') end
     if now - job.started < job.duration - 1000 then
         Kora.print.warn(('[kora_crafting] player %s finished %s in %dms (it takes %dms)'):format(src, job.recipe, now - job.started, job.duration))
-        return false, 'You finished too quickly.'
+        return false, Kora.lang('error.too_quick')
     end
 
     local station, err = resolveStation(src, job.station, job.key)
@@ -184,15 +184,15 @@ Kora.callback.register('kora_crafting:finish', function(src)
     if not recipe then return false, why end
 
     local took, taken = takeItems(src, recipe.give)
-    if not took then return false, 'Could not take the materials.' end
+    if not took then return false, Kora.lang('error.take_materials') end
 
     if not exports['qb-inventory']:AddItem(src, recipe.receive.item, recipe.receive.amount) then
         for _, back in ipairs(taken) do exports['qb-inventory']:AddItem(src, back.item, back.amount) end
-        return false, 'You do not have room for that.'
+        return false, Kora.lang('error.inventory_full')
     end
 
     if recipe.skill and (recipe.xp or 0) > 0 then GiveSkillXp(src, recipe.skill, recipe.xp) end
-    notify(src, ('You made %dx %s.'):format(recipe.receive.amount, itemLabel(allItems(), recipe.receive.item)), 'success')
+    notify(src, Kora.lang('player.made', recipe.receive.amount, itemLabel(allItems(), recipe.receive.item)), 'success')
     return true
 end)
 

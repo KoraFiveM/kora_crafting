@@ -24,18 +24,18 @@ local function optionalText(value)
 end
 
 local function toast(message)
-    Kora.notify.send({ title = 'Crafting Creator', message = message, type = 'error' })
+    Kora.notify.send({ title = Kora.lang('creator_title'), message = message, type = 'error' })
 end
 
 local function confirmed(title, message)
-    local answer = Kora.nui.openAlert({ title = title, message = message, confirmLabel = 'Delete' })
+    local answer = Kora.nui.openAlert({ title = title, message = message, confirmLabel = Kora.lang('creator.delete') })
     return answer and answer.confirmed == true
 end
 
 local function askName(title, label)
     local result = Kora.nui.openInputDialog({
         { id = 'name', label = label, type = 'text', required = true },
-    }, title, 'You can change it later.')
+    }, title, Kora.lang('creator.change_later'))
     if not result or result.cancelled then return nil end
     return optionalText(result.values and result.values.name)
 end
@@ -95,8 +95,8 @@ local function blockId(name, id)
 end
 
 local function makesText(recipe)
-    if not recipe.receive then return 'Makes nothing yet' end
-    return ('Makes %dx %s'):format(recipe.receive.amount, itemLabel(recipe.receive.item))
+    if not recipe.receive then return Kora.lang('creator.makes_nothing') end
+    return Kora.lang('player.makes', recipe.receive.amount, itemLabel(recipe.receive.item))
 end
 
 local function needsText(recipe)
@@ -104,7 +104,7 @@ local function needsText(recipe)
     for _, entry in ipairs(recipe.give) do
         parts[#parts + 1] = ('%dx %s'):format(entry.amount, itemLabel(entry.item))
     end
-    return #parts > 0 and table.concat(parts, ', ') or 'Nothing'
+    return #parts > 0 and table.concat(parts, ', ') or Kora.lang('player.nothing')
 end
 
 local function skillLabel(name)
@@ -116,7 +116,7 @@ end
 
 local function tagMetadata(recipe, metadata)
     metadata = metadata or {}
-    if recipe.tag then metadata[#metadata + 1] = { label = 'Tag', value = recipe.tag } end
+    if recipe.tag then metadata[#metadata + 1] = { label = Kora.lang('creator.tag'), value = recipe.tag } end
     return metadata
 end
 
@@ -137,14 +137,14 @@ end
 local function recipesView()
     local items = {}
     for _, recipe in ipairs(data.recipes) do
-        local metadata = { { label = 'Needs', value = needsText(recipe) } }
+        local metadata = { { label = Kora.lang('player.needs'), value = needsText(recipe) } }
         if recipe.skill then
             metadata[#metadata + 1] = {
-                label = 'Skill',
+                label = Kora.lang('player.skill'),
                 value = (recipe.level or 0) > 0 and ('%s · level %d'):format(skillLabel(recipe.skill), recipe.level) or skillLabel(recipe.skill),
             }
         end
-        if not recipe.receive then metadata[#metadata + 1] = { label = 'Status', value = 'Not finished: pick the item it makes' } end
+        if not recipe.receive then metadata[#metadata + 1] = { label = Kora.lang('creator.status'), value = Kora.lang('creator.recipe_incomplete') } end
         tagMetadata(recipe, metadata)
 
         items[#items + 1] = {
@@ -158,19 +158,19 @@ local function recipesView()
     end
 
     return {
-        id = 'recipes', label = 'Recipes', icon = 'FlaskConical',
+        id = 'recipes', label = Kora.lang('creator.recipes'), icon = 'FlaskConical',
         content = {
-            title = 'Recipes',
-            description = 'Pick a recipe to change it, or create a new one. Put recipes on a station on the Stations page.',
+            title = Kora.lang('creator.recipes'),
+            description = Kora.lang('creator.recipes_description'),
             blocks = {
                 {
                     type = 'actions',
-                    actions = { { id = 'recipe:new', label = 'Create new recipe', icon = 'Plus', variant = 'primary' } },
+                    actions = { { id = 'recipe:new', label = Kora.lang('creator.create_recipe'), icon = 'Plus', variant = 'primary' } },
                 },
                 {
                     type = 'list', id = 'recipe-list', layout = 'cards', columns = 3,
-                    title = ('Recipes (%d)'):format(#items), items = items,
-                    empty = 'No recipes yet. Create one to get started.',
+                    title = Kora.lang('creator.recipe_count', #items), items = items,
+                    empty = Kora.lang('creator.no_recipes'),
                 },
             },
         },
@@ -183,15 +183,15 @@ local function resultCards(results, recipe)
     for _, result in ipairs(results) do
         local isResult = result.name == makesItem
         local metadata = {}
-        if isResult then metadata[#metadata + 1] = { label = 'Makes', value = 'This is the result' } end
-        if result.added then metadata[#metadata + 1] = { label = 'Needs', value = 'In the recipe' } end
+        if isResult then metadata[#metadata + 1] = { label = Kora.lang('creator.result'), value = Kora.lang('creator.this_result') } end
+        if result.added then metadata[#metadata + 1] = { label = Kora.lang('player.needs'), value = Kora.lang('creator.in_recipe') } end
 
         local actions = {}
         if not isResult then
-            actions[#actions + 1] = { id = 'recipe:pick:' .. result.name, label = 'Set as result', icon = 'Check', variant = 'primary' }
+            actions[#actions + 1] = { id = 'recipe:pick:' .. result.name, label = Kora.lang('creator.set_result'), icon = 'Check', variant = 'primary' }
         end
         if not result.added then
-            actions[#actions + 1] = { id = 'recipe:add:' .. result.name, label = 'Add to recipe', icon = 'Plus', variant = 'primary' }
+            actions[#actions + 1] = { id = 'recipe:add:' .. result.name, label = Kora.lang('creator.add_recipe'), icon = 'Plus', variant = 'primary' }
         end
 
         cards[#cards + 1] = {
@@ -211,49 +211,49 @@ local function detailsForm(recipe)
     local progress, anim = recipe.progress or {}, recipe.anim or {}
 
     local fields = {
-        { id = 'label', label = 'Recipe name', type = 'text', required = true, default = recipe.label },
-        { id = 'tag', label = 'Tag', type = 'text', default = recipe.tag or '',
-            description = 'Optional. Players never see it. Search for it when adding recipes to a station.' },
+        { id = 'label', label = Kora.lang('creator.recipe_name'), type = 'text', required = true, default = recipe.label },
+        { id = 'tag', label = Kora.lang('creator.tag'), type = 'text', default = recipe.tag or '',
+            description = Kora.lang('creator.tag_description') },
     }
     if recipe.receive then
-        fields[#fields + 1] = { id = 'amount', label = 'Amount made', type = 'number', min = 1, max = 1000, default = recipe.receive.amount }
+        fields[#fields + 1] = { id = 'amount', label = Kora.lang('creator.amount_made'), type = 'number', min = 1, max = 1000, default = recipe.receive.amount }
     end
 
-    fields[#fields + 1] = { id = 'progressLabel', label = 'Progress text', type = 'text', default = progress.label or '',
-        description = 'Shown on the progress bar while crafting.' }
-    fields[#fields + 1] = { id = 'progressTime', label = 'Progress time (ms)', type = 'number', min = 500, max = 300000, default = progress.time or 5000 }
-    fields[#fields + 1] = { id = 'animDict', label = 'Animation dictionary', type = 'text', default = anim.dict or '',
-        description = 'e.g. mp_arresting. Leave the dictionary and the clip empty for no animation.' }
-    fields[#fields + 1] = { id = 'animClip', label = 'Animation clip', type = 'text', default = anim.clip or '',
-        description = 'The clip inside that dictionary, e.g. a_uncuff.' }
-    fields[#fields + 1] = { id = 'animFlag', label = 'Animation flag', type = 'number', min = 0, max = 65535, default = anim.flag or 49,
-        description = 'GTA animation flags. 49 keeps the upper body animating while allowing movement.' }
-    fields[#fields + 1] = { id = 'disable', label = 'Disable while crafting', type = 'multiselect', options = ProgressDisableOptions,
-        default = disableList(progress.disable), description = 'Controls blocked while the progress bar runs.' }
+    fields[#fields + 1] = { id = 'progressLabel', label = Kora.lang('creator.progress_text'), type = 'text', default = progress.label or '',
+        description = Kora.lang('creator.progress_description') }
+    fields[#fields + 1] = { id = 'progressTime', label = Kora.lang('creator.progress_time'), type = 'number', min = 500, max = 300000, default = progress.time or 5000 }
+    fields[#fields + 1] = { id = 'animDict', label = Kora.lang('creator.anim_dict'), type = 'text', default = anim.dict or '',
+        description = Kora.lang('creator.anim_dict_description') }
+    fields[#fields + 1] = { id = 'animClip', label = Kora.lang('creator.anim_clip'), type = 'text', default = anim.clip or '',
+        description = Kora.lang('creator.anim_clip_description') }
+    fields[#fields + 1] = { id = 'animFlag', label = Kora.lang('creator.anim_flag'), type = 'number', min = 0, max = 65535, default = anim.flag or 49,
+        description = Kora.lang('creator.anim_flag_description') }
+    fields[#fields + 1] = { id = 'disable', label = Kora.lang('creator.disable'), type = 'multiselect', options = ProgressDisableOptions,
+        default = disableList(progress.disable), description = Kora.lang('creator.disable_description') }
 
     if #data.skills > 0 or recipe.skill then
-        local options, known = { { value = 'none', label = 'No skill' } }, {}
+        local options, known = { { value = 'none', label = Kora.lang('creator.no_skill') } }, {}
         for _, skill in ipairs(data.skills) do
             options[#options + 1] = skill
             known[skill.value] = true
         end
         if recipe.skill and not known[recipe.skill] then options[#options + 1] = { value = recipe.skill, label = recipe.skill } end
 
-        fields[#fields + 1] = { id = 'skill', label = 'Skill', type = 'select', options = options, default = recipe.skill or 'none',
-            description = 'Optional. The skill a player needs a level in to craft this, and that the xp goes to.' }
+        fields[#fields + 1] = { id = 'skill', label = Kora.lang('player.skill'), type = 'select', options = options, default = recipe.skill or 'none',
+            description = Kora.lang('creator.skill_description') }
     else
-        fields[#fields + 1] = { id = 'skill', label = 'Skill', type = 'text', default = '',
-            description = 'Optional. The skills resource could not be read, so type the skill name. Leave empty for none.' }
+        fields[#fields + 1] = { id = 'skill', label = Kora.lang('player.skill'), type = 'text', default = '',
+            description = Kora.lang('creator.skill_unavailable') }
     end
-    fields[#fields + 1] = { id = 'level', label = 'Level required', type = 'number', min = 0, max = 1000, default = recipe.level,
-        description = 'Optional. Leave empty or 0 for no level. Only used when a skill is set.' }
-    fields[#fields + 1] = { id = 'xp', label = 'XP given', type = 'number', min = 0, max = 100000, default = recipe.xp,
-        description = 'Optional. The xp a player gets in that skill each time they craft this. Leave empty for none.' }
+    fields[#fields + 1] = { id = 'level', label = Kora.lang('creator.level_required'), type = 'number', min = 0, max = 1000, default = recipe.level,
+        description = Kora.lang('creator.level_description') }
+    fields[#fields + 1] = { id = 'xp', label = Kora.lang('creator.xp_given'), type = 'number', min = 0, max = 100000, default = recipe.xp,
+        description = Kora.lang('creator.xp_description') }
 
     return {
-        type = 'form', id = blockId('recipe-details', recipe.id), title = 'Details',
+        type = 'form', id = blockId('recipe-details', recipe.id), title = Kora.lang('creator.details'),
         fields = fields,
-        action = { id = 'recipe:details', label = 'Save' },
+        action = { id = 'recipe:details', label = Kora.lang('creator.save') },
     }
 end
 
@@ -261,35 +261,35 @@ local function recipeView()
     local recipe = recipeEntry(selectedRecipe)
     if not recipe then
         return {
-            id = 'recipe', label = 'Recipe', icon = 'FlaskConical',
-            content = { title = 'Recipe', blocks = { { type = 'empty', title = 'Pick a recipe first.' } } },
+            id = 'recipe', label = Kora.lang('creator.recipe'), icon = 'FlaskConical',
+            content = { title = Kora.lang('creator.recipe'), blocks = { { type = 'empty', title = Kora.lang('creator.pick_recipe') } } },
         }
     end
 
     local blocks = { detailsForm(recipe) }
     local makes = recipe.receive
     blocks[#blocks + 1] = {
-        type = 'list', id = 'recipe-makes', layout = 'cards', columns = 3, title = 'What it makes',
+        type = 'list', id = 'recipe-makes', layout = 'cards', columns = 3, title = Kora.lang('creator.what_makes'),
         items = makes and { {
             id = makes.item, label = itemLabel(makes.item), description = makes.item, image = itemImage(makes.item),
-            metadata = { { label = 'Amount', value = ('%dx'):format(makes.amount) } },
+            metadata = { { label = Kora.lang('creator.amount'), value = ('%dx'):format(makes.amount) } },
         } } or {},
-        empty = 'Nothing chosen yet. Search below and press Set as result.',
+        empty = Kora.lang('creator.nothing_chosen'),
     }
 
     local found = resultCards(itemSearch.results, recipe)
     blocks[#blocks + 1] = {
-        type = 'form', id = 'recipe-search', title = 'Find items',
-        fields = { { id = 'query', label = 'Search all items', type = 'text', default = itemSearch.query or '',
-            description = 'Part of an item name or label. Press Set as result for what it makes, or Add to recipe for what it needs.' } },
-        action = { id = 'recipe:search', label = 'Search' },
+        type = 'form', id = 'recipe-search', title = Kora.lang('creator.find_items'),
+        fields = { { id = 'query', label = Kora.lang('creator.search_items'), type = 'text', default = itemSearch.query or '',
+            description = Kora.lang('creator.search_items_description') } },
+        action = { id = 'recipe:search', label = Kora.lang('creator.search') },
     }
     if itemSearch.query then
         local extra = itemSearch.total > #found and (' of ' .. itemSearch.total) or ''
         blocks[#blocks + 1] = {
             type = 'list', id = 'recipe-results', layout = 'cards', columns = 3,
-            title = ('Results for "%s" (%d%s)'):format(itemSearch.query, #found, extra),
-            items = found, empty = 'No items match that search.',
+            title = Kora.lang('creator.results', itemSearch.query, #found, extra),
+            items = found, empty = Kora.lang('creator.no_item_matches'),
         }
     end
 
@@ -299,31 +299,31 @@ local function recipeView()
         required[#required + 1] = {
             id = entry.item,
             label = itemLabel(entry.item),
-            description = info and entry.item or (entry.item .. ' · not in the shared items'),
+            description = info and entry.item or (entry.item .. Kora.lang('creator.not_shared_item')),
             image = itemImage(entry.item),
             metadata = {
-                { label = 'Amount', value = ('%dx'):format(entry.amount) },
-                entry.keep and { label = 'Used up', value = 'No, kept' } or nil,
+                { label = Kora.lang('creator.amount'), value = ('%dx'):format(entry.amount) },
+                entry.keep and { label = Kora.lang('creator.used_up'), value = Kora.lang('creator.kept') } or nil,
             },
             actions = {
-                { id = 'recipe:edit:' .. entry.item, label = 'Edit', icon = 'Pencil', variant = 'primary' },
-                { id = 'recipe:remove:' .. entry.item, label = 'Remove', icon = 'Trash2', variant = 'destructive' },
+                { id = 'recipe:edit:' .. entry.item, label = Kora.lang('creator.edit'), icon = 'Pencil', variant = 'primary' },
+                { id = 'recipe:remove:' .. entry.item, label = Kora.lang('creator.remove'), icon = 'Trash2', variant = 'destructive' },
             },
         }
     end
     blocks[#blocks + 1] = {
         type = 'list', id = 'recipe-required', layout = 'cards', columns = 3,
-        title = ('Required items (%d)'):format(#required),
-        items = required, empty = 'Nothing is required yet. Search above to add an item.',
+        title = Kora.lang('creator.required_items', #required),
+        items = required, empty = Kora.lang('creator.no_requirements'),
     }
 
     blocks[#blocks + 1] = {
         type = 'actions',
-        actions = { { id = 'recipe:duplicate', label = 'Duplicate recipe', icon = 'Copy', variant = 'primary' } },
+        actions = { { id = 'recipe:duplicate', label = Kora.lang('creator.duplicate_recipe'), icon = 'Copy', variant = 'primary' } },
     }
     blocks[#blocks + 1] = {
-        type = 'actions', title = 'Danger zone',
-        actions = { { id = 'recipe:delete', label = 'Delete recipe', variant = 'destructive' } },
+        type = 'actions', title = Kora.lang('creator.danger'),
+        actions = { { id = 'recipe:delete', label = Kora.lang('creator.delete_recipe'), variant = 'destructive' } },
     }
 
     local description = makesText(recipe) .. '.'
@@ -340,25 +340,25 @@ local function stationsView()
             id = station.id,
             label = station.label,
             icon = 'Hammer',
-            description = ('%d recipe(s) · %d location(s)'):format(#station.recipes, #station.locations),
+            description = Kora.lang('creator.station_count', #station.recipes, #station.locations),
             action = 'station:select:' .. station.id,
         }
     end
 
     return {
-        id = 'stations', label = 'Stations', icon = 'Hammer',
+        id = 'stations', label = Kora.lang('creator.stations'), icon = 'Hammer',
         content = {
-            title = 'Crafting stations',
-            description = 'A station is where players craft. Pick one to set its recipes and its locations.',
+            title = Kora.lang('creator.station_title'),
+            description = Kora.lang('creator.stations_description'),
             blocks = {
                 {
                     type = 'actions',
-                    actions = { { id = 'station:new', label = 'Create new station', icon = 'Plus', variant = 'primary' } },
+                    actions = { { id = 'station:new', label = Kora.lang('creator.create_station'), icon = 'Plus', variant = 'primary' } },
                 },
                 {
                     type = 'list', id = 'station-list', layout = 'cards', columns = 3,
-                    title = ('Stations (%d)'):format(#items), items = items,
-                    empty = 'No stations yet. Create one to get started.',
+                    title = Kora.lang('creator.station_total', #items), items = items,
+                    empty = Kora.lang('creator.no_stations'),
                 },
             },
         },
@@ -369,8 +369,8 @@ local function stationView()
     local station = stationEntry(selectedStation)
     if not station then
         return {
-            id = 'station', label = 'Station', icon = 'Hammer',
-            content = { title = 'Station', blocks = { { type = 'empty', title = 'Pick a station first.' } } },
+            id = 'station', label = Kora.lang('creator.station'), icon = 'Hammer',
+            content = { title = Kora.lang('creator.station'), blocks = { { type = 'empty', title = Kora.lang('creator.pick_station') } } },
         }
     end
 
@@ -384,7 +384,7 @@ local function stationView()
                 id = id, label = recipe.label, description = makesText(recipe),
                 image = recipe.receive and itemImage(recipe.receive.item) or nil,
                 metadata = #tags > 0 and tags or nil,
-                actions = { { id = 'station:remove:' .. id, label = 'Remove', icon = 'Trash2', variant = 'destructive' } },
+                actions = { { id = 'station:remove:' .. id, label = Kora.lang('creator.remove'), icon = 'Trash2', variant = 'destructive' } },
             }
         end
     end
@@ -393,12 +393,12 @@ local function stationView()
     for _, recipe in ipairs(data.recipes) do
         if not taken[recipe.id] and recipeMatches(recipe, stationRecipeQuery) then
             local metadata = tagMetadata(recipe)
-            if not recipe.receive then metadata[#metadata + 1] = { label = 'Status', value = 'Not finished: players will not see it' } end
+            if not recipe.receive then metadata[#metadata + 1] = { label = Kora.lang('creator.status'), value = Kora.lang('creator.recipe_hidden') } end
             available[#available + 1] = {
                 id = recipe.id, label = recipe.label, description = makesText(recipe),
                 image = recipe.receive and itemImage(recipe.receive.item) or nil,
                 metadata = #metadata > 0 and metadata or nil,
-                actions = { { id = 'station:add:' .. recipe.id, label = 'Add', icon = 'Plus', variant = 'primary' } },
+                actions = { { id = 'station:add:' .. recipe.id, label = Kora.lang('creator.set_add'), icon = 'Plus', variant = 'primary' } },
             }
         end
     end
@@ -406,15 +406,15 @@ local function stationView()
     local locations = {}
     for index, location in ipairs(station.locations) do
         local tags = {}
-        if location.gang then tags[#tags + 1] = 'gang ' .. location.gang end
-        if location.job then tags[#tags + 1] = 'job ' .. location.job end
+        if location.gang then tags[#tags + 1] = Kora.lang('creator.gang_tag', location.gang) end
+        if location.job then tags[#tags + 1] = Kora.lang('creator.job_tag', location.job) end
         if location.object then tags[#tags + 1] = location.object end
         locations[#locations + 1] = {
             id = tostring(index),
-            label = ('Location %d%s'):format(index, #tags > 0 and (' · ' .. table.concat(tags, ' · ')) or ''),
+            label = Kora.lang('creator.location', index, #tags > 0 and (' · ' .. table.concat(tags, ' · ')) or ''),
             icon = 'MapPin',
             description = coordsLabel(location.coords),
-            actions = { { id = 'station:dropLoc:' .. index, label = 'Delete', icon = 'Trash2', variant = 'destructive' } },
+            actions = { { id = 'station:dropLoc:' .. index, label = Kora.lang('creator.delete'), icon = 'Trash2', variant = 'destructive' } },
         }
     end
 
@@ -422,56 +422,56 @@ local function stationView()
         id = 'station', label = station.label, icon = 'Hammer',
         content = {
             title = station.label,
-            description = 'The target text, the recipes players can craft here, and where the station is.',
+            description = Kora.lang('creator.station_description'),
             blocks = {
                 {
-                    type = 'form', id = blockId('station-details', station.id), title = 'Settings',
+                    type = 'form', id = blockId('station-details', station.id), title = Kora.lang('creator.settings'),
                     fields = {
-                        { id = 'label', label = 'Station name', type = 'text', required = true, default = station.label },
-                        { id = 'targetLabel', label = 'Target label', type = 'text', default = station.targetLabel or 'Craft' },
-                        { id = 'targetIcon', label = 'Target icon', type = 'text', default = station.targetIcon or 'fa-solid fa-hammer' },
+                        { id = 'label', label = Kora.lang('creator.station_name'), type = 'text', required = true, default = station.label },
+                        { id = 'targetLabel', label = Kora.lang('creator.target_label'), type = 'text', default = station.targetLabel or Kora.lang('player.craft') },
+                        { id = 'targetIcon', label = Kora.lang('creator.target_icon'), type = 'text', default = station.targetIcon or 'fa-solid fa-hammer' },
                     },
-                    action = { id = 'station:details', label = 'Save' },
+                    action = { id = 'station:details', label = Kora.lang('creator.save') },
                 },
                 {
                     type = 'list', id = 'station-recipes', layout = 'cards', columns = 3,
-                    title = ('Recipes on this station (%d)'):format(#onStation), items = onStation,
-                    empty = 'No recipes yet. Add some below.',
+                    title = Kora.lang('creator.station_recipes', #onStation), items = onStation,
+                    empty = Kora.lang('creator.station_empty'),
                 },
                 {
-                    type = 'form', id = 'station-recipe-search', title = 'Find a recipe to add',
-                    fields = { { id = 'recipeQuery', label = 'Search recipes', type = 'text', default = stationRecipeQuery,
-                        description = 'Matches the recipe name, its tag, or the item it makes. Several words must all match. Empty shows every recipe.' } },
-                    action = { id = 'station:search', label = 'Search' },
+                    type = 'form', id = 'station-recipe-search', title = Kora.lang('creator.find_recipe'),
+                    fields = { { id = 'recipeQuery', label = Kora.lang('creator.search_recipes'), type = 'text', default = stationRecipeQuery,
+                        description = Kora.lang('creator.search_recipes_description') } },
+                    action = { id = 'station:search', label = Kora.lang('creator.search') },
                 },
                 {
                     type = 'list', id = 'station-available', layout = 'cards', columns = 3,
-                    title = ('Recipes you can add (%d)'):format(#available), items = available,
-                    empty = stationRecipeQuery ~= '' and 'No recipes match that search.' or 'Every recipe is on this station already.',
+                    title = Kora.lang('creator.recipes_available', #available), items = available,
+                    empty = stationRecipeQuery ~= '' and Kora.lang('creator.no_recipe_matches') or Kora.lang('creator.every_recipe_added'),
                 },
                 {
-                    type = 'form', id = blockId('station-place', station.id), title = 'Place locations',
+                    type = 'form', id = blockId('station-place', station.id), title = Kora.lang('creator.place_locations'),
                     fields = {
-                        { id = 'gang', label = 'Gang', type = 'text', default = '',
-                            description = 'Only members of this gang can use the location.' },
-                        { id = 'job', label = 'Job', type = 'text', default = '',
-                            description = 'Only people with this job can use the location. With a gang and a job, either one is enough. Empty for both = everyone.' },
-                        { id = 'object', label = 'Object', type = 'text', default = '',
-                            description = 'Optional prop model, e.g. prop_toolchest_01. When set, the prop is placed where you aim and players use the prop. Leave empty for a plain zone.' },
+                        { id = 'gang', label = Kora.lang('creator.gang'), type = 'text', default = '',
+                            description = Kora.lang('creator.gang_description') },
+                        { id = 'job', label = Kora.lang('creator.job'), type = 'text', default = '',
+                            description = Kora.lang('creator.job_description') },
+                        { id = 'object', label = Kora.lang('creator.object'), type = 'text', default = '',
+                            description = Kora.lang('creator.object_description') },
                     },
-                    action = { id = 'station:place', label = 'Aim and place locations' },
+                    action = { id = 'station:place', label = Kora.lang('creator.place_aim') },
                 },
                 {
                     type = 'list', id = 'station-locations', layout = 'cards', columns = 3,
-                    title = ('Locations (%d)'):format(#locations), items = locations, empty = 'No locations yet.',
+                    title = Kora.lang('creator.locations', #locations), items = locations, empty = Kora.lang('creator.no_locations'),
                 },
                 {
                     type = 'actions',
-                    actions = { { id = 'station:duplicate', label = 'Duplicate station (settings and recipes only)', icon = 'Copy', variant = 'primary' } },
+                    actions = { { id = 'station:duplicate', label = Kora.lang('creator.duplicate_station'), icon = 'Copy', variant = 'primary' } },
                 },
                 {
-                    type = 'actions', title = 'Danger zone',
-                    actions = { { id = 'station:delete', label = 'Delete station', variant = 'destructive' } },
+                    type = 'actions', title = Kora.lang('creator.danger'),
+                    actions = { { id = 'station:delete', label = Kora.lang('creator.delete_station'), variant = 'destructive' } },
                 },
             },
         },
@@ -527,11 +527,11 @@ end
 
 local function askAmount(label, title, current)
     local result = Kora.nui.openInputDialog({
-        { id = 'amount', label = 'Amount needed', type = 'number', min = 1, max = 1000, default = current and current.amount or 1, required = true },
+        { id = 'amount', label = Kora.lang('creator.amount_needed'), type = 'number', min = 1, max = 1000, default = current and current.amount or 1, required = true },
         {
-            id = 'keep', label = 'Used up when crafting?', type = 'select',
+            id = 'keep', label = Kora.lang('creator.used_up_question'), type = 'select',
             default = current and current.keep and 'keep' or 'use',
-            options = { { value = 'use', label = 'Yes, used up' }, { value = 'keep', label = 'No, the player keeps it' } },
+            options = { { value = 'use', label = Kora.lang('creator.yes_used') }, { value = 'keep', label = Kora.lang('creator.player_keeps') } },
         },
     }, title, label)
     if not result or result.cancelled then return nil end
@@ -551,7 +551,7 @@ end
 
 local function saveGive(recipe, give, message)
     local result, err = change('kora_crafting:creator:recipes:give', recipe.id, give)
-    if not result then return fail(err or 'Failed to save.') end
+    if not result then return fail(err or Kora.lang('message.failed_save')) end
 
     local updated = recipeEntry(recipe.id)
     local inRecipe = {}
@@ -581,53 +581,53 @@ end
 
 local function recipeAction(actionId, values)
     if actionId == 'recipe:new' then
-        local name = askName('New recipe', 'Recipe name')
+        local name = askName(Kora.lang('creator.new_recipe'), Kora.lang('creator.recipe_name'))
         if not name then return refresh() end
 
         local result, err = change('kora_crafting:creator:recipes:create', name)
-        if not result then return fail(err or 'Failed to create the recipe.') end
-        return openRecipe(result.id, notice('Recipe created. Pick the item it makes and add what it needs.'))
+        if not result then return fail(err or Kora.lang('message.failed_create_recipe')) end
+        return openRecipe(result.id, notice(Kora.lang('message.recipe_created')))
     end
 
     local selectId = actionId:match('^recipe:select:(.+)$')
     if selectId then
-        if not recipeEntry(selectId) then return fail('Unknown recipe.') end
+        if not recipeEntry(selectId) then return fail(Kora.lang('error.unknown_recipe')) end
         return openRecipe(selectId)
     end
 
     local recipe = recipeEntry(selectedRecipe)
-    if not recipe then return fail('Pick a recipe first.') end
+    if not recipe then return fail(Kora.lang('creator.pick_recipe')) end
 
     if actionId == 'recipe:details' then
         local input = detailsInput(values)
-        if input.anim.dict ~= '' and not DoesAnimDictExist(input.anim.dict) then return fail('Unknown animation dictionary.') end
+        if input.anim.dict ~= '' and not DoesAnimDictExist(input.anim.dict) then return fail(Kora.lang('error.unknown_anim_dict')) end
 
         local result, err = change('kora_crafting:creator:recipes:details', recipe.id, input)
-        if not result then return fail(err or 'Failed to save.') end
-        return refresh(notice('Saved.'))
+        if not result then return fail(err or Kora.lang('message.failed_save')) end
+        return refresh(notice(Kora.lang('message.saved')))
     end
 
     local pickName = actionId:match('^recipe:pick:(.+)$')
     if pickName then
         local result, err = change('kora_crafting:creator:recipes:item', recipe.id, pickName)
-        if not result then return fail(err or 'Failed to save.') end
-        return refresh(notice(('It now makes %s.'):format(itemLabel(pickName))))
+        if not result then return fail(err or Kora.lang('message.failed_save')) end
+        return refresh(notice(Kora.lang('message.now_makes', itemLabel(pickName))))
     end
 
     if actionId == 'recipe:duplicate' then
         local result, err = change('kora_crafting:creator:recipes:duplicate', recipe.id)
-        if not result then return fail(err or 'Failed to duplicate the recipe.') end
-        return openRecipe(result.id, notice('Recipe duplicated. You are now editing the copy.'))
+        if not result then return fail(err or Kora.lang('message.failed_duplicate_recipe')) end
+        return openRecipe(result.id, notice(Kora.lang('message.recipe_duplicated')))
     end
 
     if actionId == 'recipe:delete' then
-        local message = ('This removes %s, and takes it off every station that has it.'):format(recipe.label)
-        if not confirmed('Delete recipe?', message) then return refresh() end
+        local message = Kora.lang('message.delete_recipe_message', recipe.label)
+        if not confirmed(Kora.lang('message.delete_recipe_confirm'), message) then return refresh() end
 
         local result, err = change('kora_crafting:creator:recipes:delete', recipe.id)
-        if not result then return fail(err or 'Failed to delete the recipe.') end
+        if not result then return fail(err or Kora.lang('message.failed_delete_recipe')) end
         selectedRecipe, currentView = nil, 'recipes'
-        return refresh(notice('Recipe deleted.'))
+        return refresh(notice(Kora.lang('message.recipe_deleted')))
     end
 
     if actionId == 'recipe:search' then
@@ -638,7 +638,7 @@ local function recipeAction(actionId, values)
         end
 
         local result, err = Kora.callback.trigger('kora_crafting:creator:items:search', query, recipe.id)
-        if not result then return fail(err or 'The search failed.') end
+        if not result then return fail(err or Kora.lang('message.search_failed')) end
         itemSearch.query, itemSearch.results = query, result.results or {}
         itemSearch.total = result.total or #itemSearch.results
         return refresh()
@@ -650,14 +650,14 @@ local function recipeAction(actionId, values)
         for _, result in ipairs(itemSearch.results) do
             if result.name == addName then found = result break end
         end
-        if not found then return fail('Search for that item again first.') end
+        if not found then return fail(Kora.lang('message.search_again')) end
 
-        local picked = askAmount(found.label, 'Add to recipe')
+        local picked = askAmount(found.label, Kora.lang('creator.add_to_recipe_title'))
         if not picked then return refresh() end
 
         local give = giveCopy(recipe)
         give[#give + 1] = { item = addName, amount = picked.amount, keep = picked.keep }
-        return saveGive(recipe, give, ('%dx %s added.'):format(picked.amount, found.label))
+        return saveGive(recipe, give, Kora.lang('message.item_added', picked.amount, found.label))
     end
 
     local editName = actionId:match('^recipe:edit:(.+)$')
@@ -669,11 +669,11 @@ local function recipeAction(actionId, values)
         end
         if not entry then return refresh() end
 
-        local picked = askAmount(itemLabel(editName), 'Edit item', entry)
+        local picked = askAmount(itemLabel(editName), Kora.lang('creator.edit_item'), entry)
         if not picked then return refresh() end
 
         entry.amount, entry.keep = picked.amount, picked.keep
-        return saveGive(recipe, give, ('%s now needs %dx.'):format(itemLabel(editName), picked.amount))
+        return saveGive(recipe, give, Kora.lang('message.item_needs', itemLabel(editName), picked.amount))
     end
 
     local removeName = actionId:match('^recipe:remove:(.+)$')
@@ -682,7 +682,7 @@ local function recipeAction(actionId, values)
         for _, entry in ipairs(giveCopy(recipe)) do
             if entry.item ~= removeName then give[#give + 1] = entry end
         end
-        return saveGive(recipe, give, ('%s removed.'):format(itemLabel(removeName)))
+        return saveGive(recipe, give, Kora.lang('message.item_removed', itemLabel(removeName)))
     end
 
     return refresh()
@@ -707,22 +707,22 @@ end
 
 local function stationAction(actionId, values)
     if actionId == 'station:new' then
-        local name = askName('New station', 'Station name')
+        local name = askName(Kora.lang('creator.new_station'), Kora.lang('creator.station_name'))
         if not name then return refresh() end
 
         local result, err = change('kora_crafting:creator:stations:create', name)
-        if not result then return fail(err or 'Failed to create the station.') end
-        return openStation(result.id, notice('Station created. Add recipes and place its locations.'))
+        if not result then return fail(err or Kora.lang('message.failed_create_station')) end
+        return openStation(result.id, notice(Kora.lang('message.station_created')))
     end
 
     local selectId = actionId:match('^station:select:(.+)$')
     if selectId then
-        if not stationEntry(selectId) then return fail('Unknown station.') end
+        if not stationEntry(selectId) then return fail(Kora.lang('error.unknown_station')) end
         return openStation(selectId)
     end
 
     local station = stationEntry(selectedStation)
-    if not station then return fail('Pick a station first.') end
+    if not station then return fail(Kora.lang('creator.pick_station')) end
 
     if actionId == 'station:details' then
         local result, err = change('kora_crafting:creator:stations:details', station.id, {
@@ -730,8 +730,8 @@ local function stationAction(actionId, values)
             targetLabel = text(values.targetLabel),
             targetIcon = text(values.targetIcon),
         })
-        if not result then return fail(err or 'Failed to save.') end
-        return refresh(notice('Saved.'))
+        if not result then return fail(err or Kora.lang('message.failed_save')) end
+        return refresh(notice(Kora.lang('message.saved')))
     end
 
     if actionId == 'station:search' then
@@ -742,20 +742,20 @@ local function stationAction(actionId, values)
     local addId = actionId:match('^station:add:(.+)$')
     if addId then
         local result, err = change('kora_crafting:creator:stations:recipes', station.id, stationRecipeIds(station, nil, addId))
-        if not result then return fail(err or 'Failed to save.') end
-        return refresh(notice('Recipe added.'))
+        if not result then return fail(err or Kora.lang('message.failed_save')) end
+        return refresh(notice(Kora.lang('message.recipe_added')))
     end
 
     local removeId = actionId:match('^station:remove:(.+)$')
     if removeId then
         local result, err = change('kora_crafting:creator:stations:recipes', station.id, stationRecipeIds(station, removeId))
-        if not result then return fail(err or 'Failed to save.') end
-        return refresh(notice('Recipe removed.'))
+        if not result then return fail(err or Kora.lang('message.failed_save')) end
+        return refresh(notice(Kora.lang('message.recipe_removed')))
     end
 
     if actionId == 'station:place' then
         local object = optionalText(values.object)
-        if object and not IsModelInCdimage(GetHashKey(object)) then return fail('Unknown object model.') end
+        if object and not IsModelInCdimage(GetHashKey(object)) then return fail(Kora.lang('error.unknown_object_model')) end
         pendingTool = { kind = 'point', object = object, gang = optionalText(values.gang), job = optionalText(values.job) }
         currentView = 'station'
         return { close = true }
@@ -764,24 +764,24 @@ local function stationAction(actionId, values)
     local dropIndex = actionId:match('^station:dropLoc:(%d+)$')
     if dropIndex then
         local result, err = change('kora_crafting:creator:stations:locations', station.id, removedAt(station.locations, tonumber(dropIndex)))
-        if not result then return fail(err or 'Failed to save.') end
-        return refresh(notice('Deleted.'))
+        if not result then return fail(err or Kora.lang('message.failed_save')) end
+        return refresh(notice(Kora.lang('message.deleted')))
     end
 
     if actionId == 'station:duplicate' then
         local result, err = change('kora_crafting:creator:stations:duplicate', station.id)
-        if not result then return fail(err or 'Failed to duplicate the station.') end
-        return openStation(result.id, notice('Station duplicated without locations. You are now editing the copy.'))
+        if not result then return fail(err or Kora.lang('message.failed_duplicate_station')) end
+        return openStation(result.id, notice(Kora.lang('message.station_duplicated')))
     end
 
     if actionId == 'station:delete' then
-        local message = ('This removes %s and all of its locations.'):format(station.label)
-        if not confirmed('Delete station?', message) then return refresh() end
+        local message = Kora.lang('message.delete_station_message', station.label)
+        if not confirmed(Kora.lang('message.delete_station_confirm'), message) then return refresh() end
 
         local result, err = change('kora_crafting:creator:stations:delete', station.id)
-        if not result then return fail(err or 'Failed to delete the station.') end
+        if not result then return fail(err or Kora.lang('message.failed_delete_station')) end
         selectedStation, currentView = nil, 'stations'
-        return refresh(notice('Station deleted.'))
+        return refresh(notice(Kora.lang('message.station_deleted')))
     end
 
     return refresh()
@@ -796,13 +796,13 @@ end
 
 Kora.nui.registerApp({
     id = APP_ID,
-    title = 'Crafting Creator',
+    title = Kora.lang('creator_title'),
     icon = 'Hammer',
     layout = 'standard',
     width = 1200,
     height = 800,
     defaultView = 'recipes',
-    navigation = { { id = 'recipes', label = 'Recipes', icon = 'FlaskConical', content = { title = 'Recipes', blocks = {} } } },
+    navigation = { { id = 'recipes', label = Kora.lang('creator.recipes'), icon = 'FlaskConical', content = { title = Kora.lang('creator.recipes'), blocks = {} } } },
     onAction = onAction,
 })
 
@@ -821,7 +821,7 @@ local function placeUntilCancelled(tool)
         }
         local result, err = change('kora_crafting:creator:stations:locations', station.id, appended(station.locations, place))
         if not result then
-            toast(err or 'Failed to save the location.')
+            toast(err or Kora.lang('message.failed_save_location'))
             return
         end
     end
@@ -830,7 +830,7 @@ end
 local function open()
     local result, err = Kora.callback.trigger('kora_crafting:creator:get')
     if not result then
-        toast(err or 'Admin permission required.')
+        toast(err or Kora.lang('message.no_permission'))
         return
     end
 
