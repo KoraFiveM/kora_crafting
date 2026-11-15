@@ -105,7 +105,7 @@ function playerAccess(src)
     if type(data) ~= 'table' or (data.job == nil and data.gang == nil) then
         if not warnedPlayer then
             warnedPlayer = true
-            Kora.print.warn('[kora_crafting] could not read a player\'s job and gang, so job/gang locked locations stay closed. Fix playerAccess() in server/_functions.lua.')
+            Kora.logging.warn('access.player_job_unreadable', 'Could not read a player job and gang, so job/gang locked locations stay closed; fix playerAccess() in server/_functions.lua')
         end
         return nil
     end

@@ -1,0 +1,1 @@
+server/logs.lua:operator-only /craftLogs console command (source 0); its output is the command's reply to the console, not diagnostics

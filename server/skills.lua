@@ -2,10 +2,10 @@
 local cfg = Config.Skills
 local warned = {}
 
-local function warnOnce(key, message)
+local function warnOnce(key, level, event, message, fields)
     if warned[key] then return end
     warned[key] = true
-    Kora.print.warn('[kora_crafting] ' .. message)
+    Kora.logging[level](event, message, fields)
 end
 
 local function callSkills(name, ...)
@@ -16,7 +16,7 @@ local function callSkills(name, ...)
         return resource[name](resource, table.unpack(args))
     end)
     if not ok then
-        warnOnce(name, ('the %s export "%s" failed: %s'):format(cfg.resource, name, tostring(result)))
+        warnOnce(name, 'error', 'skills.export_failed', 'A skills resource export failed', { skillsResource = cfg.resource, export = name, error = tostring(result) })
         return false
     end
     return true, result, extra
@@ -58,6 +58,6 @@ end
 function GiveSkillXp(src, skill, xp)
     local ok, result, reason = callSkills(cfg.addRep, src, skill, xp)
     if ok and result == true then return true end
-    if ok then warnOnce('addRep', ('%s refused %d xp in "%s": %s'):format(cfg.resource, xp, tostring(skill), tostring(reason))) end
+    if ok then warnOnce('addRep', 'warn', 'skills.xp_refused', 'Skills resource refused XP', { skillsResource = cfg.resource, xp = xp, skill = tostring(skill), reason = tostring(reason) }) end
     return false
 end
