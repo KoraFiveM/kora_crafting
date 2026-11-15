@@ -235,7 +235,7 @@ end)
 
 RegisterCommand(Config.Command, function(source)
     if not isAdmin(source) then
-        Kora.print.warn(('[kora_crafting] player %s was denied /%s: they do not have the "command" ace'):format(source, Config.Command))
+        Kora.logging.warn('creator.command_denied', 'Player was denied the creator command: missing "command" ace', { playerId = source, command = Config.Command })
         Kora.notify.send(source, { title = Kora.lang('creator_title'), message = Kora.lang('message.no_permission'), type = 'error' })
         return
     end

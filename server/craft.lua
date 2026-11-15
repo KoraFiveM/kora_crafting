@@ -174,7 +174,7 @@ Kora.callback.register('kora_crafting:finish', function(src)
     local now = GetGameTimer()
     if now > job.expires then return false, Kora.lang('error.took_too_long') end
     if now - job.started < job.duration - 1000 then
-        Kora.print.warn(('[kora_crafting] player %s finished %s in %dms (it takes %dms)'):format(src, job.recipe, now - job.started, job.duration))
+        Kora.logging.warn('craft.finished_too_quickly', 'Player finished a craft faster than its duration', { playerId = src, recipe = job.recipe, elapsedMs = now - job.started, durationMs = job.duration })
         return false, Kora.lang('error.too_quick')
     end
 

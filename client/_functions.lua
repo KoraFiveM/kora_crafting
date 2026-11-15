@@ -81,7 +81,7 @@ end)
 CreateThread(function()
     local all = Kora.state.awaitGlobal('Crafting', 30000, 100)
     if not all then
-        Kora.print.warn('[kora_crafting] timed out waiting for GlobalState.Crafting')
+        Kora.logging.warn('crafting.state_timed_out', 'Timed out waiting for GlobalState.Crafting')
         return
     end
     for id, entry in pairs(all.stations or {}) do buildStation(id, entry) end

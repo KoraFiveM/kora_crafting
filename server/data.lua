@@ -74,24 +74,24 @@ end
 CreateThread(function()
     Wait(1000)
     if not Kora.sql.ready(60000) then
-        Kora.print.warn('[kora_crafting] kora_sql was unavailable; crafting data is not loaded until restart.')
+        Kora.logging.error('data.sql_unavailable', 'kora_sql was unavailable; crafting data is not loaded until restart')
         return
     end
     local reports, schemaErr = Kora.sql.ensureTables(KoraCraftingSchema)
     if schemaErr then
-        Kora.print.warn(('[kora_crafting] schema failed: %s'):format(tostring(schemaErr)))
+        Kora.logging.error('data.schema_failed', 'Crafting schema setup failed', { error = tostring(schemaErr) })
         return
     end
     for _, report in ipairs(reports or {}) do
         for _, warning in ipairs(report.warnings or {}) do
-            Kora.print.warn(('[kora_crafting] %s: %s'):format(tostring(report.table), tostring(warning)))
+            Kora.logging.warn('data.schema_warning', 'Crafting schema warning', { table = tostring(report.table), warning = tostring(warning) })
         end
     end
     local recipesOk, recipeRows = pcall(Kora.sql.query, 'SELECT * FROM `kora_crafting_recipes`')
     local stationsOk, stationRows = pcall(Kora.sql.query, 'SELECT * FROM `kora_crafting_stations`')
     local logsOk, logRows = pcall(Kora.sql.query, 'SELECT * FROM `kora_crafting_logs`')
     if not (recipesOk and stationsOk and logsOk) then
-        Kora.print.warn(('[kora_crafting] could not read the database: %s'):format(tostring(recipesOk and stationsOk and logsOk and logRows or recipeRows)))
+        Kora.logging.error('data.read_failed', 'Could not read crafting data from the database', { error = tostring(recipesOk and stationsOk and logsOk and logRows or recipeRows) })
         return
     end
     pcall(Kora.sql.update, 'DELETE FROM `kora_crafting_logs` WHERE `created_at` < (NOW() - INTERVAL ? DAY)', { LogKeepDays })
