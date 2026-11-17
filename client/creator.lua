@@ -141,7 +141,7 @@ local function recipesView()
         if recipe.skill then
             metadata[#metadata + 1] = {
                 label = Kora.lang('player.skill'),
-                value = (recipe.level or 0) > 0 and ('%s · level %d'):format(skillLabel(recipe.skill), recipe.level) or skillLabel(recipe.skill),
+                value = (recipe.level or 0) > 0 and Kora.lang('player.level', skillLabel(recipe.skill), recipe.level) or skillLabel(recipe.skill),
             }
         end
         if not recipe.receive then metadata[#metadata + 1] = { label = Kora.lang('creator.status'), value = Kora.lang('creator.recipe_incomplete') } end
@@ -285,7 +285,7 @@ local function recipeView()
         action = { id = 'recipe:search', label = Kora.lang('creator.search') },
     }
     if itemSearch.query then
-        local extra = itemSearch.total > #found and (' of ' .. itemSearch.total) or ''
+        local extra = itemSearch.total > #found and Kora.lang('creator.results_of', itemSearch.total) or ''
         blocks[#blocks + 1] = {
             type = 'list', id = 'recipe-results', layout = 'cards', columns = 3,
             title = Kora.lang('creator.results', itemSearch.query, #found, extra),
