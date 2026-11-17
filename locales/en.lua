@@ -33,6 +33,7 @@ return {
         find_items = 'Find items', search_items = 'Search all items',
         search_items_description = 'Part of an item name or label. Press Set as result for what it makes, or Add to recipe for what it needs.',
         search = 'Search', results = 'Results for "%s" (%d%s)', no_item_matches = 'No items match that search.',
+        results_of = ' of %d',
         not_shared_item = ' · not in the shared items', amount = 'Amount', used_up = 'Used up', kept = 'No, kept',
         edit = 'Edit', remove = 'Remove', required_items = 'Required items (%d)',
         no_requirements = 'Nothing is required yet. Search above to add an item.', duplicate_recipe = 'Duplicate recipe',
