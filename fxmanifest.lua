@@ -3,7 +3,7 @@ game 'gta5'
 lua54 'yes'
 description 'Crafting stations and recipes, built and edited in game'
 author 'Kora'
-version '0.2.1'
+version '0.2.2'
 
 dependency 'kora_lib'
 dependency 'kora_core'
